@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even in Firefox and even if you have the excerpt in the feed and not the content.
-Version: 1.0
+Version: 2.0
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -31,6 +31,43 @@ License: GPL3
 
 if(preg_match('#' . basename(__FILE__) . '#', $_SERVER['PHP_SELF'])) { die("Sorry, you don't have direct access to this page."); }
 
+
+//Additional links on the plugin page
+
+add_filter('plugin_row_meta', 'rif_register_links',10,2);
+
+function rif_register_links($links, $file) {
+	
+	$base = plugin_basename(__FILE__);
+	if ($file == $base) {
+		$links[] = '<a href="options-general.php?page=set-feed-imgage-size">'.__('Settings','image-rss').'</a>';
+		$links[] = '<a href="http://wordpress.org/extend/plugins/rss-image-feed/faq/" target="_blank">'.__('FAQ','image-rss').'</a>';
+		$links[] = '<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=LLUFQDHG33XCE" target="_blank">'.__('Donate','image-rss').'</a>';
+	}
+	
+	return $links;
+
+}
+
+
+/**
+ *
+ * Adds RIF to the adminbar
+ *
+ */
+function rif_admin_bar_menu() {
+	global $wp_admin_bar;
+	
+	if ( !is_super_admin() || !is_admin_bar_showing() ) {
+	return; 
+	
+	}
+	
+	$wp_admin_bar->add_menu( array( 'parent' => 'menu-settings', 'id' => 'rif', 'title' => 'RSS Image Feed', 'href' => admin_url( 'options-general.php?page=set-feed-imgage-size' ) ) );
+	
+	
+}
+add_action( 'wp_before_admin_bar_render', 'rif_admin_bar_menu');
 
 // import laguage files
 
@@ -60,7 +97,7 @@ function rif_display_field() {
 	
 	$rss_options = get_option('rss_options');
 	
-	echo "<input id=\"image_size\" name=\"rss_options[image_size]\" size=\"6\" type=\"text\" value=\"{$rss_options['image_size']}\" />";
+	echo "<input id='image_size' name='rss_options[image_size]' size='6' type='text' value='{$rss_options['image_size']}' />";
 	
 }
 
@@ -69,8 +106,6 @@ function rif_display_field() {
 register_activation_hook(  __FILE__, 'rif_set_option' );
 
 function rif_set_option() {
-	
-	$rss_options=get_option('rss_options');
 	
 	$rss_options['image_size']=200;
 	
@@ -94,18 +129,18 @@ add_action('admin_menu', 'rif_admin_menu');
 
 function rif_admin_menu() {
 	
-	add_options_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-rss-imgage-size', 'rif_display_page');
+	add_options_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-feed-imgage-size', 'rif_options_page');
 	
 }
 
 // Calling the options page
 
-function rif_display_page() {
+function rif_options_page() {
 	
 	?>
     
     <div>
-    <h2>RSS Image Feed</h2>
+    <h2>Feed Images</h2>
     
 	<?php _e('Define the size of the images in your feed.', 'image-rss'); ?>
     
@@ -144,11 +179,9 @@ add_filter('the_content', 'add_image_content');
 
 function add_image_excerpt($output){
 	
-	if (!empty($output)) {
-		
-		$output = get_feed_image().$output;
-		
-	}
+	if (!empty($output)) $output = get_feed_image().$output;
+	
+	else $output = get_feed_image();
 	
 	return $output;
 
@@ -158,9 +191,9 @@ function add_image_content($content){
 	
 	if (is_feed()) {
 		
-		$irf_text = preg_replace('/\[caption(.*?)\[\/caption\]/', '', get_the_content());
+		$rif_text = preg_replace('#\[(.*?)\]#', '', get_the_content());
 		
-		$content = get_feed_image().$irf_text;
+		$content = get_feed_image().$rif_text;
 		
 	}
 		
@@ -168,7 +201,7 @@ function add_image_content($content){
 
 }
 
-// exracting the first image of the post
+// extracting the first image of the post
 
 function get_feed_image() {
 	
@@ -177,6 +210,7 @@ function get_feed_image() {
 		
 		$irf_thumb = '';
 		$irf_content = get_the_content();
+		$irf_content = do_shortcode($irf_content);
 		$irf_image_title = get_the_title();
 		
 		$irf_thumb = preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $irf_content, $matches);
