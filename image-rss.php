@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even in Firefox and even if you have the excerpt in the feed and not the content.
-Version: 2.0
+Version: 2.1
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -40,7 +40,7 @@ function rif_register_links($links, $file) {
 	
 	$base = plugin_basename(__FILE__);
 	if ($file == $base) {
-		$links[] = '<a href="options-general.php?page=set-feed-imgage-size">'.__('Settings','image-rss').'</a>';
+		$links[] = '<a href="plugins.php?page=set-feed-imgage-size">'.__('Settings','image-rss').'</a>';
 		$links[] = '<a href="http://wordpress.org/extend/plugins/rss-image-feed/faq/" target="_blank">'.__('FAQ','image-rss').'</a>';
 		$links[] = '<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=LLUFQDHG33XCE" target="_blank">'.__('Donate','image-rss').'</a>';
 	}
@@ -52,29 +52,16 @@ function rif_register_links($links, $file) {
 
 /**
  *
- * Adds RIF to the adminbar
+ * import laguage files
  *
  */
-function rif_admin_bar_menu() {
-	global $wp_admin_bar;
-	
-	if ( !is_super_admin() || !is_admin_bar_showing() ) {
-	return; 
-	
-	}
-	
-	$wp_admin_bar->add_menu( array( 'parent' => 'menu-settings', 'id' => 'rif', 'title' => 'RSS Image Feed', 'href' => admin_url( 'options-general.php?page=set-feed-imgage-size' ) ) );
-	
-	
-}
-add_action( 'wp_before_admin_bar_render', 'rif_admin_bar_menu');
-
-// import laguage files
-
 load_plugin_textdomain('image-rss', false , basename(dirname(__FILE__)).'/languages');
 
-// init
-
+/**
+ *
+ * init
+ *
+ */
 add_action('admin_init', 'image_rss_init');
 
 function image_rss_init() {
@@ -129,7 +116,7 @@ add_action('admin_menu', 'rif_admin_menu');
 
 function rif_admin_menu() {
 	
-	add_options_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-feed-imgage-size', 'rif_options_page');
+	add_plugins_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-feed-imgage-size', 'rif_options_page');
 	
 }
 
@@ -161,20 +148,16 @@ function rif_validate($input) {
 	
 	$rss_options = get_option('rss_options');
 	
-	if(!is_numeric($newinput['image_size']) || strlen($newinput['image_size']) > 4) {
-		
-		$newinput['image_size'] = $rss_options['image_size'];
-		
-	}
+	if(!is_numeric($newinput['image_size']) || strlen($newinput['image_size']) > 4) $newinput['image_size'] = $rss_options['image_size'];
 
-return $newinput;
+	return $newinput;
 
 }
 
 /* hooking into the feed for content and excerpt */
 
 add_filter('the_excerpt_rss', 'add_image_excerpt');
-add_filter('the_content', 'add_image_content');
+add_filter('the_content_rss', 'add_image_content');
 
 
 function add_image_excerpt($output){
@@ -189,15 +172,17 @@ function add_image_excerpt($output){
 
 function add_image_content($content){
 	
-	if (is_feed()) {
+	if (is_feed()) :
 		
-		$rif_text = preg_replace('#\[(.*?)\]#', '', get_the_content());
+		$rif_text = get_the_content();
+		
+		$rif_text = strip_shortcodes($rif_text);
 		
 		$content = get_feed_image().$rif_text;
 		
-	}
+	endif;
 		
-		return $content;
+	return $content;
 
 }
 
@@ -205,43 +190,44 @@ function add_image_content($content){
 
 function get_feed_image() {
 	
-		$rss_options = get_option('rss_options');
-		$irf_max = $rss_options['image_size'];
-		
-		$irf_thumb = '';
-		$irf_content = get_the_content();
-		$irf_content = do_shortcode($irf_content);
-		$irf_image_title = get_the_title();
-		
-		$irf_thumb = preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $irf_content, $matches);
-		$irf_thumb = $matches [1] [0];
-		
-		if ($irf_thumb) { $irf_size=getimagesize($irf_thumb);
-		
-		if (($irf_size[0]/$irf_size[1])>1) {
-								   
-			$irf_x=$irf_max;
-			$irf_y=intval($irf_size[1]/($irf_size[0]/$irf_x));
-			
-		}
-		
-		else {
-											   
-			$irf_y=$irf_max;
-			$irf_x=intval($irf_size[0]/($irf_size[1]/$irf_y));
-			
-		}
-		
-		$irf_image="<a href=\"".get_permalink()."\"><img title=\"".$irf_image_title."\" src=\"".$irf_thumb."\" alt=\"".$irf_image_title."\" width=\"".$irf_x."\" height=\"".$irf_y."\" /></a>";
-		
-	}
+	$rss_options = get_option('rss_options');
+	$irf_max = $rss_options['image_size'];
 	
-	if (!empty($irf_image)) {
+	$irf_thumb = '';
+	$irf_content = get_the_content();
+	$irf_content = do_shortcode($irf_content);
+	$irf_image_title = get_the_title();
+	
+	$irf_thumb = preg_match_all('/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $irf_content, $matches);
+	$irf_thumb = $matches [1] [0];
 		
-		$img_container="<span class=\"image-rss\">".$irf_image."</span><br/>";
+	if (!empty($irf_thumb))	:
+	
+		$irf_size=@getimagesize($irf_thumb);
+		
+		if (!empty($irf_size)) :
+		
+			if (($irf_size[0]/$irf_size[1])>1) :
+									   
+				$irf_x=$irf_max;
+				$irf_y=intval($irf_size[1]/($irf_size[0]/$irf_x));
+			
+			else :
+												   
+				$irf_y=$irf_max;
+				$irf_x=intval($irf_size[0]/($irf_size[1]/$irf_y));
+				
+			endif;
+			
+		endif;
+		
+		$irf_width_height = (!empty($irf_x)) ? ' width="'.$irf_x.'" height="'.$irf_y.'"' : ' width="'.$irf_x.'"';
+		
+		$irf_image='<a href="'.get_permalink().'"><img title="'.$irf_image_title.'" src="'.$irf_thumb.'" alt="'.$irf_image_title.'" '.$irf_width_height.' /></a>';
+		$img_container='<div>'.$irf_image.'</div><br/>';
 		return $img_container;
 		
-	}
+	endif;
 	
 }
 
