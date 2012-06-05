@@ -4,7 +4,7 @@ Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_i
 Tags: rss, feed, excerpt, content, custom, customize, image, images
 Requires at least: 2.7
 Tested up to: 3.4
-Stable tag: 2.1
+Stable tag: 2.2
 
 The RSS Image Feed adds the first image of a post to your feeds, even in firefox and even if you only display the excerpt.
 
