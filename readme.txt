@@ -32,6 +32,10 @@ Try emptying the cache of your browser and reload the feed. The images should be
 
 == Changelog ==
 
+= 2.2 =
+
+* Complete code overhaul
+
 = 2.1 =
 
 * Issue with broken images fixed
@@ -57,3 +61,7 @@ More functionality added, works now also with galleries
 = 2.1 =
 
 Issue with broken images fixed
+
+= 2.2 =
+
+Complete code overhaul
