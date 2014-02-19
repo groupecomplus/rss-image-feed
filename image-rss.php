@@ -2,7 +2,7 @@
 /*
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
-Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even in Firefox and even if you have the excerpt in the feed and not the content.
+Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
 Version: 2.2
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
@@ -10,7 +10,7 @@ License: GPL3
 Text Domain: image-rss
 */
 
-/*  Copyright 2011  Waldemar Stoffel  (email : stoffel@atelier-fuenf.de)
+/*  Copyright 2011 - 2014 Waldemar Stoffel  (email : stoffel@atelier-fuenf.de)
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -30,236 +30,309 @@ Text Domain: image-rss
 
 /* Stop direct call */
 
-if(preg_match('#' . basename(__FILE__) . '#', $_SERVER['PHP_SELF'])) die('Sorry, you don&#39;t have direct access to this page.');
+if(preg_match('#' . basename(__FILE__) . '#', $_SERVER['PHP_SELF'])) die('Sorry, you don\'t have direct access to this page.');
 
 define( 'RIF_PATH', plugin_dir_path(__FILE__) );
 
-if (!class_exists('A5_Thumbnail')) require_once RIF_PATH.'class-lib/A5_ImageClasses.php';
+if (!class_exists('A5_Image')) require_once RIF_PATH.'class-lib/A5_ImageClass.php';;
+if (!class_exists('A5_FormField')) require_once RIF_PATH.'class-lib/A5_FormFieldClass.php';
 
 
-//Additional links on the plugin page
-
-add_filter('plugin_row_meta', 'rif_register_links',10,2);
-
-function rif_register_links($links, $file) {
+class Rss_Image_Feed {
 	
-	global $rif_language_file;
+	const language_file = 'image-rss';
 	
-	$base = plugin_basename(__FILE__);
+	private static $options;
 	
-	if ($file == $base) :
-		$links[] = '<a href="http://wordpress.org/extend/plugins/rss-image-feed/faq/" target="_blank">'.__('FAQ', $rif_language_file).'</a>';
-		$links[] = '<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=LLUFQDHG33XCE" target="_blank">'.__('Donate', $rif_language_file).'</a>';
+	function __construct(){
 	
-	endif;
+		/* hooking into the feed for content and excerpt */
 	
-	return $links;
-
-}
-
-add_filter( 'plugin_action_links', 'rif_plugin_action_links', 10, 2 );
-
-function rif_plugin_action_links( $links, $file ) {
-	
-	global $rif_language_file;
-	
-	$base = plugin_basename(__FILE__);
-	
-	if ($file == $base) array_unshift($links, '<a href="'.admin_url('plugins.php?page=set-feed-imgage-size').'">'.__('Settings', $rif_language_file).'</a>');
-
-	return $links;
-
-}
-
-
-/**
- *
- * import laguage files
- *
- */
-$rif_language_file = 'image-rss'; 
-
-load_plugin_textdomain($rif_language_file, false , basename(dirname(__FILE__)).'/languages');
-
-/**
- *
- * init
- *
- */
-add_action('admin_init', 'image_rss_init');
-
-function image_rss_init() {
-	
-	global $rif_language_file;
-	
-	register_setting( 'rss_options', 'rss_options', 'rif_validate' );
-	
-	add_settings_section('image_rss_setting', __('Image Settings', $rif_language_file), 'rif_display_section', 'new_image_size');
-	
-	add_settings_field('image_size', __('Imagesize:', $rif_language_file), 'rif_display_field', 'new_image_size', 'image_rss_setting');
-
-}
-
-function rif_display_section() {
-	
-	global $rif_language_file;
-	
-	echo '<p>'.__('Give here only the longest side of the image. The smaller side will be counted on displaying the image. There will be no cropping.', $rif_language_file).'</p>';
-
-}
-
-function rif_display_field() {
-	
-	$rss_options = get_option('rss_options');
-	
-	echo "<input id='image_size' name='rss_options[image_size]' size='6' type='text' value='{$rss_options['image_size']}' />";
-	
-}
-
-// Setting the default size of the image to 200
-
-register_activation_hook(  __FILE__, 'rif_set_option' );
-
-function rif_set_option() {
-	
-	$rss_options['image_size']=200;
-	
-	add_option('rss_options', $rss_options);
-	
-}
-
-// Deleting the option
-
-register_deactivation_hook(  __FILE__, 'rif_unset_option' );
-
-function rif_unset_option() {
-	
-	delete_option('rss_options');
-	
-}
-
-// Installing options page
-
-add_action('admin_menu', 'rif_admin_menu');
-
-function rif_admin_menu() {
-	
-	add_plugins_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-feed-imgage-size', 'rif_options_page');
-	
-}
-
-// Calling the options page
-
-function rif_options_page() {
-	
-	global $rif_language_file;
-	
-	?>
-    
-    <div>
-    <h2>Feed Images</h2>
-    <?php settings_errors(); ?>
-	<?php _e('Define the size of the images in your feed.', $rif_language_file); ?>
-    
-    <form action="options.php" method="post">
-	
-	<?php settings_fields('rss_options'); ?>
-	<?php do_settings_sections('new_image_size'); ?>
-    
-    <input name="Submit" type="submit" value="<?php esc_attr_e('Save Changes'); ?>" />
-    </form></div>
-	
-	<?php
-}
-
-function rif_validate($input) {
-	
-	$newinput['image_size'] = trim($input['image_size']);
-	
-	$rss_options = get_option('rss_options');
-	
-	if(!is_numeric($newinput['image_size']) || strlen($newinput['image_size']) > 4) $newinput['image_size'] = $rss_options['image_size'];
-
-	return $newinput;
-
-}
-
-/* hooking into the feed for content and excerpt */
-
-add_filter('the_excerpt_rss', 'add_image_excerpt');
-add_filter('the_content_feed', 'add_image_content');
-
-
-function add_image_excerpt($output){
-	
-	if (!empty($output)) $output = get_feed_image().$output;
-	
-	else $output = get_feed_image();
-	
-	return $output;
-
-}
-
-function add_image_content($content){
-	
-	$rif_text = strip_shortcodes(get_the_content());
+		add_filter('the_excerpt_rss', array($this, 'add_image_excerpt'));
+		add_filter('the_content_feed', array($this, 'add_image_content'));
 		
-	$content = get_feed_image().$rif_text;
+		//Additional links on the plugin page
+	
+		add_filter('plugin_row_meta', array($this, 'register_links'), 10, 2);
+		add_filter( 'plugin_action_links', array($this, 'register_action_links'), 10, 2 );
 		
-	return $content;
-
-}
-
-// extracting the first image of the post
-
-function get_feed_image() {
-	
-	$rss_options = get_option('rss_options');
-	$rif_max = $rss_options['image_size'];
-	
-	global $rif_language_file, $post;
-	
-	$img_container = '';
-	
-	$imagetags = new A5_ImageTags;
-
-	$rif_tags = $imagetags->get_tags($post, $rif_language_file);
-
-	$rif_image_alt = $rif_tags['image_alt'];
-	$rif_image_title = $rif_tags['image_title'];
-	$rif_title_tag = $rif_tags['title_tag'];
-	
-	$args = array (
-	'content' => get_the_content(),
-	'width' => $rif_max,
-	'height' => $rif_max
-	);
-	   
-	$rif_image = new A5_Thumbnail;
-
-	$rif_image_info = $rif_image->get_thumbnail($args);
-	
-	$rif_thumb = $rif_image_info['thumb'];
-	
-	$rif_width = $rif_image_info['thumb_width'];
-
-	$rif_height = $rif_image_info['thumb_height'];
-	
-	if ($rif_thumb) :
-	
-		$eol = "\r\n";
-		$tab = "\t\t";
-	
-		if ($rif_width) $rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" width="'.$rif_width.'" height="'.$rif_height.'" /></a>';
+		add_action('admin_init', array($this, 'init'));
+		
+		load_plugin_textdomain(self::language_file, false , basename(dirname(__FILE__)).'/languages');
+		
+		register_activation_hook(  __FILE__, array($this, 'install') );
+		register_deactivation_hook(  __FILE__, array($this, 'uninstall') );
+		
+		if (is_multisite()) :
+		
+			$plugins = get_site_option('active_sitewide_plugins');
 			
-		else $rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" style="maxwidth: '.$rif_max.'; maxheight: '.$rif_max.';" /></a>';
+			if (isset($plugins[plugin_basename(__FILE__)])) :
 		
-		$img_container=$eol.$tab.'<div>'.$eol.$tab.$rif_img_tag.$eol.$tab.'</div>'.$eol.$tab.'<br/>'.$eol.$tab;
+				add_action('network_admin_menu', array($this, 'add_site_admin_menu'));
+				
+				self::$options = get_site_option('rss_options');
+				
+			else :
+			
+				add_action('admin_menu', array($this, 'add_admin_menu'));
+			
+				self::$options = get_option('rss_options');
+				
+			endif;
+			
+		else:
+			
+			add_action('admin_menu', array($this, 'add_admin_menu'));
+			
+			self::$options = get_option('rss_options');
 		
-	endif;
+		endif;	
+		
+	}
 	
-	return $img_container;
+	function register_links($links, $file) {
+		
+		$base = plugin_basename(__FILE__);
+		
+		if ($file == $base) :
+		
+			$links[] = '<a href="http://wordpress.org/extend/plugins/rss-image-feed/faq/" target="_blank">'.__('FAQ', self::language_file).'</a>';
+			$links[] = '<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=LLUFQDHG33XCE" target="_blank">'.__('Donate', self::language_file).'</a>';
+		
+		endif;
+		
+		return $links;
+	
+	}
+	
+	function register_action_links( $links, $file ) {
+		
+		$base = plugin_basename(__FILE__);
+		
+		if ($file == $base) array_unshift($links, '<a href="'.admin_url('plugins.php?page=set-feed-imgage-size').'">'.__('Settings', self::language_file).'</a>');
+	
+		return $links;
+	
+	}
+	
+	
+	/**
+	 *
+	 * init
+	 *
+	 */
+	function init() {
+		
+		register_setting('rss_options', 'rss_options', array($this, 'validate_input'));
+		
+		add_settings_section('image_rss_setting', __('Image Settings', self::language_file), array($this, 'display_section'), 'new_image_size');
+		
+		add_settings_field('image_size', __('Imagesize:', self::language_file), array($this, 'display_field'), 'new_image_size', 'image_rss_setting');
+	
+	}
+	
+	function display_section() {
+		
+		echo '<p>'.__('Give here only the longest side of the image. The smaller side will be counted on displaying the image. There will be no cropping.', self::language_file).'</p>';
+	
+	}
+	
+	function display_field() {
+		
+		a5_number_field('image_size', 'rss_options[image_size]', self::$options['image_size'], false, array('step' => 1));
+		
+	}
+	
+	// Setting the default size of the image to 200
+	
+	function install() {
+		
+		$screen = get_current_screen();
+		
+		self::$options = array(
+			'tags' => array(),
+			'sizes' => array(),
+			'image_size' => 200
+			);
+		
+		if (is_multisite() && $screen->is_network) :
+		
+			self::$options['sitewide'] = true; 
+		
+			add_site_option('rss_options', self::$options);
+		
+		else : 
+		
+			self::$options['sitewide'] = false;
+		
+			add_option('rss_options', self::$options);
+		
+		endif;
+		
+	}
+	
+	// Deleting the option
+	
+	function uninstall() {
+		
+		$screen = get_current_screen();
+		
+		if (is_multisite() && $screen->is_network) :
+		
+			delete_site_option('rss_options');
+		
+		else :
+		
+			delete_option('rss_options');
+		
+		endif;
+		
+	}
+	
+	// Installing options page
+	
+	function add_admin_menu() {
+		
+		add_plugins_page('RSS Image Feed', '<img alt="" src="'.plugins_url('rss-image-feed/img/a5-icon-11.png').'"> RSS Image Feed', 'administrator', 'set-feed-imgage-size', array($this, 'rif_options_page'));
+		
+	}
+	
+	/**
+	 *
+	 * Add menu page for multisite
+	 *
+	 */
+	function add_site_admin_menu() {
+		
+		add_menu_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-feed-imgage-size', array($this, 'rif_options_page'), plugins_url('rss-image-feed/img/a5-icon-16.png'));
+		
+	}
+	
+	// Calling the options page
+	
+	function rif_options_page() {
+		
+		?>
+		
+		<div class="wrap">
+        <a href="<?php _e('http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed', self::language_file); ?>"><div id="a5-logo" class="icon32" style="background: url('<?php echo plugins_url('rss-image-feed/img/a5-icon-34.png');?>');"></div></a>
+		<h2>Feed Images</h2>
+        <?php _e('Define the size of the images in your feed.', self::language_file); ?>
+		<?php settings_errors(); ?>
+		
+		<form action="options.php" method="post">
+		
+		<?php
+        
+		settings_fields('rss_options');
+		do_settings_sections('new_image_size');
+		
+		submit_button(); ?>
+		</form></div>
+		
+		<?php
+	}
+	
+	function validate_input($input) {
+		
+		$newinput['image_size'] = trim($input['image_size']);
+		
+			if(!is_numeric($newinput['image_size'])) :
+			
+				add_settings_error('rss_options', 'not-numeric-image-size', __('Please enter a numeric value for the image size.', self::language_file), 'error');
+				
+				self::$options['image_size'] = 200;
+				
+			endif;
+			
+			$newinput['image_size'] = intval($newinput['image_size']);
+				
+			if($newinput['image_size'] > 999) :
+			
+				add_settings_error('rss_options', 'too-large-image-size', __('Imagesize too large. Please choose a value smaller than 1000.', self::language_file), 'error');
+				
+				self::$options['image_size'] = 200;
+				
+			endif;
+			
+		self::$options['image_size'] = $newinput['image_size'];	
+	
+		return self::$options;
+	
+	}
+	
+	function add_image_excerpt($output){
+		
+		if (!empty($output)) $output = $this->get_feed_image().$output;
+		
+		else $output = $this->get_feed_image();
+		
+		return $output;
+	
+	}
+	
+	function add_image_content($content){
+		
+		$rif_text = strip_shortcodes(get_the_content());
+			
+		$content = $this->get_feed_image().$rif_text;
+			
+		return $content;
+	
+	}
+	
+	// extracting the first image of the post
+	
+	function get_feed_image() {
+		
+		$rif_max = self::$options['image_size'];
+		
+		global $post;
+		
+		$img_container = '';
+		
+		$rif_tags = A5_Image::tags($post, 'rss_options', self::language_file, self::$options['sitewide']);
+	
+		$rif_image_alt = $rif_tags['image_alt'];
+		$rif_image_title = $rif_tags['image_title'];
+		$rif_title_tag = $rif_tags['title_tag'];
+		
+		$args = array (
+			'content' => get_the_content(),
+			'width' => $rif_max,
+			'height' => $rif_max,
+			'option' => 'rss_options',
+			'sitewide' => self::$options['sitewide']
+		);
+		   
+		$rif_image_info = A5_Image::thumbnail($args);
+		
+		$rif_thumb = $rif_image_info['thumb'];
+		
+		$rif_width = $rif_image_info['thumb_width'];
+	
+		$rif_height = $rif_image_info['thumb_height'];
+		
+		if ($rif_thumb) :
+		
+			$eol = "\r\n";
+			$tab = "\t";
+		
+			if ($rif_width) $rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" width="'.$rif_width.'" height="'.$rif_height.'" /></a>';
+				
+			else $rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" style="maxwidth: '.$rif_max.'; maxheight: '.$rif_max.';" /></a>';
+			
+			$img_container=$eol.$tab.'<div>'.$eol.$tab.$rif_img_tag.$eol.$tab.'</div>'.$eol.$tab.'<br/>'.$eol.$tab;
+			
+		endif;
+		
+		return $img_container;
+		
+	}
 	
 }
+
+$rss_image_feed = new Rss_Image_Feed;
 
 ?>
