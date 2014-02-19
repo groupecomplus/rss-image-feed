@@ -72,3 +72,4 @@ Complete code overhaul
 
 = 3.0 =
 
+Framework changed, some smaller bugfixes
