@@ -7,7 +7,7 @@ Version: 3.0
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
-Text Domain: image-rss
+Text Domain: rss-image-feed
 */
 
 /*  Copyright 2011 - 2014 Waldemar Stoffel  (email : stoffel@atelier-fuenf.de)
@@ -41,7 +41,7 @@ if (!class_exists('A5_FormField')) require_once RIF_PATH.'class-lib/A5_FormField
 
 class Rss_Image_Feed {
 	
-	const language_file = 'image-rss';
+	const language_file = 'rss-image-feed';
 	
 	private static $options;
 	
