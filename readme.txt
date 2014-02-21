@@ -80,4 +80,4 @@ Framework changed, some smaller bugfixes
 
 = 3.1 =
 
-Possibility to force excerpt in feed
+Possibility to force excerpt in feed and small bugfix
