@@ -294,8 +294,6 @@ class Rss_Image_Feed {
 	
 	function add_image_excerpt($output){
 		
-		echo 'Now I\'m here!';
-		
 		$rif_text = strip_tags(strip_shortcodes(get_the_content()));
 		
 		if ($rif_text != $output && true === self::$options['force_excerpt']) :
@@ -317,15 +315,11 @@ class Rss_Image_Feed {
 	
 	function add_image_content($content){
 		
-		echo 'Here I am';
-		
 		$rif_text = strip_shortcodes(get_the_content());
 		
 		$imagetag = $this->get_feed_image();
 		
 		if (true === self::$options['force_excerpt']) :
-		
-			echo 'Bretzel! ';
 		
 			$args = array(
 				'content' => $rif_text,
