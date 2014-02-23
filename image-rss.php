@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
-Version: 3.0
+Version: 3.2
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -294,8 +294,6 @@ class Rss_Image_Feed {
 	
 	function add_image_excerpt($output){
 		
-		echo 'Now I\'m here!';
-		
 		$rif_text = strip_tags(strip_shortcodes(get_the_content()));
 		
 		if ($rif_text != $output && true === self::$options['force_excerpt']) :
@@ -317,15 +315,11 @@ class Rss_Image_Feed {
 	
 	function add_image_content($content){
 		
-		echo 'Here I am';
-		
 		$rif_text = strip_shortcodes(get_the_content());
 		
 		$imagetag = $this->get_feed_image();
 		
 		if (true === self::$options['force_excerpt']) :
-		
-			echo 'Bretzel! ';
 		
 			$args = array(
 				'content' => $rif_text,
