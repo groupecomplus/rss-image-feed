@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
-Version: 3.0
+Version: 3.4
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -34,14 +34,18 @@ if(preg_match('#' . basename(__FILE__) . '#', $_SERVER['PHP_SELF'])) die('Sorry,
 
 define( 'RIF_PATH', plugin_dir_path(__FILE__) );
 
+# loading the framework
 if (!class_exists('A5_Excerpt')) require_once RIF_PATH.'class-lib/A5_ExcerptClass.php';
 if (!class_exists('A5_Image')) require_once RIF_PATH.'class-lib/A5_ImageClass.php';
 if (!class_exists('A5_FormField')) require_once RIF_PATH.'class-lib/A5_FormFieldClass.php';
+if (!class_exists('A5_OptionPage')) require_once RIF_PATH.'class-lib/A5_OptionPageClass.php';
 
+#loading plugin specific class
+if (!class_exists('RIF_Admin')) require_once RIF_PATH.'class-lib/RIF_AdminClass.php';
 
 class Rss_Image_Feed {
 	
-	const language_file = 'rss-image-feed';
+	const language_file = 'rss-image-feed', version = '3.3';
 	
 	private static $options;
 	
@@ -49,17 +53,21 @@ class Rss_Image_Feed {
 	
 		/* hooking into the feed for content and excerpt */
 	
-		add_filter('the_excerpt_rss', array($this, 'add_image_excerpt'));
-		add_filter('the_content_feed', array($this, 'add_image_content'));
+		add_filter('the_excerpt_rss', array(&$this, 'add_image_excerpt'));
+		add_filter('the_content_feed', array(&$this, 'add_image_content'));
 		
 		//Additional links on the plugin page
+		add_filter('plugin_row_meta', array(&$this, 'register_links'), 10, 2);	
+		add_filter('plugin_action_links', array(&$this, 'register_action_links'), 10, 2);
 	
-		add_action('admin_init', array($this, 'init'));
-		
 		load_plugin_textdomain(self::language_file, false , basename(dirname(__FILE__)).'/languages');
 		
-		register_activation_hook(  __FILE__, array($this, 'install') );
-		register_deactivation_hook(  __FILE__, array($this, 'uninstall') );
+		add_action('init', array(&$this, 'speedy'), 9999);
+		add_action('admin_head', array(&$this, 'speedy'), 9999);
+		add_action('wp_head', array(&$this, 'speedy'), 9999);
+		
+		register_activation_hook(  __FILE__, array(&$this, 'install') );
+		register_deactivation_hook(  __FILE__, array(&$this, 'uninstall') );
 		
 		if (is_multisite()) :
 		
@@ -67,26 +75,83 @@ class Rss_Image_Feed {
 			
 			if (isset($plugins[plugin_basename(__FILE__)])) :
 		
-				add_action('network_admin_menu', array($this, 'add_site_admin_menu'));
-				
 				self::$options = get_site_option('rss_options');
+				
+				if (self::version != self::$options['version']) :
+				
+					self::$options['version'] = self::version;
+					
+					unset(self::$options['tags'], self::$options['sizes']);
+					
+					self::$options['cache'] = array();
+					
+					update_site_option('rss_options', self::$options);
+				
+				endif;
 				
 			else :
 			
-				add_action('admin_menu', array($this, 'add_admin_menu'));
+				$plugins = get_option('active_plugins');
 			
-				self::$options = get_option('rss_options');
+				if (isset($plugins[plugin_basename(__FILE__)])) :
+			
+					self::$options = get_option('rss_options');
+					
+					if (self::version != self::$options['version']) :
+					
+						self::$options['version'] = self::version;
+						
+						unset(self::$options['tags'], self::$options['sizes']);
+						
+						self::$options['cache'] = array();
+						
+						update_option('rss_options', self::$options);
+					
+					endif;
+				
+				endif;
 				
 			endif;
 			
 		else:
-			
-			add_action('admin_menu', array($this, 'add_admin_menu'));
-			
-			self::$options = get_option('rss_options');
 		
-		endif;	
+			$plugins = get_option('active_plugins');
+			
+			if (isset($plugins[plugin_basename(__FILE__)])) :
+			
+				self::$options = get_option('rss_options');
+				
+				if (self::version != self::$options['version']) :
+					
+					self::$options['version'] = self::version;
+					
+					unset(self::$options['tags'], self::$options['sizes']);
+					
+					self::$options['cache'] = array();
+					
+					update_option('rss_options', self::$options);
+				
+				endif;
+				
+			endif;
 		
+		endif;
+		
+		add_image_size('rss-image', self::$options['image_size'], self::$options['image_size']);
+		
+		$RIF_Admin = new RIF_Admin(self::$options['sitewide']);
+		
+	}
+	
+	/**
+	 * 
+	 * Trying to make things faster by flushing. (Not sure whether it works)
+	 *
+	 */
+	function speedy() {
+		
+		flush();
+	
 	}
 	
 	function register_links($links, $file) {
@@ -114,75 +179,30 @@ class Rss_Image_Feed {
 	
 	}
 	
-	
-	/**
-	 *
-	 * init
-	 *
-	 */
-	function init() {
-		
-		register_setting('rss_options', 'rss_options', array($this, 'validate_input'));
-		
-		add_settings_section('image_rss_settings', __('RSS Settings', self::language_file), array($this, 'display_section'), 'new_image_settings');
-		
-		add_settings_field('image_size', __('Imagesize:', self::language_file), array($this, 'display_imgsize'), 'new_image_settings', 'image_rss_settings');
-		
-		add_settings_field('force_excerpt', __('Force Excerpt:', self::language_file), array($this, 'display_force'), 'new_image_settings', 'image_rss_settings');
-		
-		add_settings_field('excerpt_size', __('Limit Excerpt:', self::language_file), array($this, 'display_excptsize'), 'new_image_settings', 'image_rss_settings');
-	
-	}
-	
-	function display_section() {
-		
-		echo '<p>'.__('Change the size of the image and the excerpt here.', self::language_file).'</p>';
-	
-	}
-	
-	function display_imgsize() {
-		
-		a5_number_field('image_size', 'rss_options[image_size]', self::$options['image_size'], __('Give here only the longest side of the image. The smaller side will be counted on displaying the image. There will be no cropping.', self::language_file), array('step' => 1));
-		
-	}
-	
-	function display_force() {
-		
-		a5_checkbox('force_excerpt', 'rss_options[force_excerpt]', self::$options['force_excerpt'], __('Click, to limit the post content to a summary if the post doesn&#39;t have an excerpt.', self::language_file));
-		
-	}
-	
-	function display_excptsize() {
-		
-		a5_number_field('excerpt_size', 'rss_options[excerpt_size]', self::$options['excerpt_size'], __('How long should the summary of the article be? Enter the number of sentences here.', self::language_file), array('step' => 1));
-		
-	}
-	
 	// Setting some default values
 	
 	function install() {
 		
 		$screen = get_current_screen();
 		
-		self::$options = array(
-			'tags' => array(),
-			'sizes' => array(),
+		$defaults = array(
 			'image_size' => 200,
 			'force_excerpt' => false,
-			'excerpt_size' => 3
+			'excerpt_size' => 3,
+			'version' => self::version,
+			'sitewide' => false,
+			'cache' => array()
 		);
 		
 		if (is_multisite() && $screen->is_network) :
 		
-			self::$options['sitewide'] = true; 
+			$defaults['sitewide'] = true; 
 		
-			add_site_option('rss_options', self::$options);
+			add_site_option('rss_options', $defaults);
 		
 		else : 
 		
-			self::$options['sitewide'] = false;
-		
-			add_option('rss_options', self::$options);
+			add_option('rss_options', $defaults);
 		
 		endif;
 		
@@ -206,106 +226,13 @@ class Rss_Image_Feed {
 		
 	}
 	
-	// Installing options page
-	
-	function add_admin_menu() {
-		
-		add_plugins_page('RSS Image Feed', '<img alt="" src="'.plugins_url('rss-image-feed/img/a5-icon-11.png').'"> RSS Image Feed', 'administrator', 'set-feed-imgage-size', array($this, 'rif_options_page'));
-		
-	}
-	
-	/**
-	 *
-	 * Add menu page for multisite
-	 *
-	 */
-	function add_site_admin_menu() {
-		
-		add_menu_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-feed-imgage-size', array($this, 'rif_options_page'), plugins_url('rss-image-feed/img/a5-icon-16.png'));
-		
-	}
-	
-	// Calling the options page
-	
-	function rif_options_page() {
-		
-		?>
-		
-		<div class="wrap">
-        <a href="<?php _e('http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed', self::language_file); ?>"><div id="a5-logo" class="icon32" style="background: url('<?php echo plugins_url('rss-image-feed/img/a5-icon-34.png');?>');"></div></a>
-		<h2>Feed Images</h2>
-        <?php _e('Define the size of the images and summary in your feed.', self::language_file); ?>
-		<?php settings_errors(); ?>
-		
-		<form action="options.php" method="post">
-		
-		<?php
-        
-		settings_fields('rss_options');
-		do_settings_sections('new_image_settings');
-		
-		submit_button(); ?>
-		</form></div>
-		
-		<?php
-	}
-	
-	function validate_input($input) {
-		
-		$newinput['image_size'] = trim($input['image_size']);
-		$newinput['force_excerpt'] = (isset($input['force_excerpt'])) ? true : false;
-		$newinput['excerpt_size'] = trim($input['excerpt_size']);
-		
-			if(!is_numeric($newinput['image_size'])) :
-			
-				add_settings_error('rss_options', 'not-numeric-image-size', __('Please enter a numeric value for the image size.', self::language_file), 'error');
-				
-				$newinput['image_size'] = 200;
-				
-			endif;
-			
-			$newinput['image_size'] = intval($newinput['image_size']);
-			
-			if(!is_numeric($newinput['excerpt_size'])) :
-			
-				add_settings_error('rss_options', 'not-numeric-excerpt-size', __('Please enter a numeric value for the excerpt length.', self::language_file), 'error');
-				
-				$newinput['excerpt_size'] = 3;
-				
-			endif;
-			
-			$newinput['excerpt_size'] = intval($newinput['excerpt_size']);
-				
-			if($newinput['image_size'] > 999) :
-			
-				add_settings_error('rss_options', 'too-large-image-size', __('Imagesize too large. Please choose a value smaller than 1000.', self::language_file), 'error');
-				
-				$newinput['image_size'] = 200;
-				
-			endif;
-			
-		self::$options['image_size'] = $newinput['image_size'];
-		self::$options['force_excerpt'] = $newinput['force_excerpt'];
-		self::$options['excerpt_size'] = $newinput['excerpt_size'];
-	
-		return self::$options;
-	
-	}
-	
 	function add_image_excerpt($output){
-		
-		echo 'Now I\'m here!';
 		
 		$rif_text = strip_tags(strip_shortcodes(get_the_content()));
 		
 		if ($rif_text != $output && true === self::$options['force_excerpt']) :
 		
-			$args = array(
-				'content' => $rif_text,
-				'count' => self::$options['excerpt_size']
-			);
-		
-			$output = A5_Excerpt::text($args);
+			$output = $this->get_feed_excerpt($rif_text);
 		
 		endif;
 		
@@ -317,22 +244,13 @@ class Rss_Image_Feed {
 	
 	function add_image_content($content){
 		
-		echo 'Here I am';
-		
 		$rif_text = strip_shortcodes(get_the_content());
 		
 		$imagetag = $this->get_feed_image();
 		
 		if (true === self::$options['force_excerpt']) :
 		
-			echo 'Bretzel! ';
-		
-			$args = array(
-				'content' => $rif_text,
-				'count' => self::$options['excerpt_size']
-			);
-		
-			$rif_text = A5_Excerpt::text($args);
+			$rif_text = $this->get_feed_excerpt($rif_text);
 			
 		endif;
 			
@@ -346,35 +264,32 @@ class Rss_Image_Feed {
 	
 	function get_feed_image() {
 		
-		$rif_max = self::$options['image_size'];
-		
-		global $post;
+		$id = get_the_ID();
 		
 		$img_container = '';
 		
-		$rif_tags = A5_Image::tags($post, 'rss_options', self::language_file, self::$options['sitewide']);
+		$rif_tags = A5_Image::tags(self::language_file);
 	
 		$rif_image_alt = $rif_tags['image_alt'];
 		$rif_image_title = $rif_tags['image_title'];
 		$rif_title_tag = $rif_tags['title_tag'];
 		
 		$args = array (
-			'content' => get_the_content(),
-			'width' => $rif_max,
-			'height' => $rif_max,
+			'id' => $id,
 			'option' => 'rss_options',
-			'sitewide' => self::$options['sitewide']
+			'image_size' => 'rss-image',
+			'multisite' => self::$options['sitewide']
 		);
 		   
 		$rif_image_info = A5_Image::thumbnail($args);
 		
-		$rif_thumb = $rif_image_info['thumb'];
+		if ($rif_image_info) :
 		
-		$rif_width = $rif_image_info['thumb_width'];
-	
-		$rif_height = $rif_image_info['thumb_height'];
+			$rif_thumb = $rif_image_info[0];
+			
+			$rif_width = $rif_image_info[1];
 		
-		if ($rif_thumb) :
+			$rif_height = $rif_image_info[2];
 		
 			$eol = "\r\n";
 			$tab = "\t";
@@ -388,6 +303,21 @@ class Rss_Image_Feed {
 		endif;
 		
 		return $img_container;
+		
+	}
+	
+	// getting excerpt if forced
+	
+	function get_feed_excerpt($text) {
+		
+		$cache = array();
+	
+		$args = array(
+			'content' => $text,
+			'count' => self::$options['excerpt_size']
+		);
+		
+		return A5_Excerpt::text($args);
 		
 	}
 	
