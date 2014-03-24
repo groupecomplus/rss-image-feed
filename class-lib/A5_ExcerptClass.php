@@ -46,6 +46,8 @@ class A5_Excerpt {
 			
 				$text = (empty($format)) ? strip_tags(trim(preg_replace('/\s\s+/', ' ', str_replace(array("\r\n", "\n", "\r", "&nbsp;"), ' ', $excerpt_base)))) : preg_replace('#<img(.*?)/>#', '', $excerpt_base);
 				
+				$text = preg_replace('/\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|$!:,.;]*[A-Z0-9+&@#\/%=~_|$]/i', '', $text);
+				
 				$length = (isset($count)) ? $count : 3;
 				
 				$style = (isset($type)) ? $type : 'sentences';
