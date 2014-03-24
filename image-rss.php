@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
-Version: 3.3
+Version: 3.4
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -91,10 +91,38 @@ class Rss_Image_Feed {
 				
 			else :
 			
+				$plugins = get_option('active_plugins');
+			
+				if (isset($plugins[plugin_basename(__FILE__)])) :
+			
+					self::$options = get_option('rss_options');
+					
+					if (self::version != self::$options['version']) :
+					
+						self::$options['version'] = self::version;
+						
+						unset(self::$options['tags'], self::$options['sizes']);
+						
+						self::$options['cache'] = array();
+						
+						update_option('rss_options', self::$options);
+					
+					endif;
+				
+				endif;
+				
+			endif;
+			
+		else:
+		
+			$plugins = get_option('active_plugins');
+			
+			if (isset($plugins[plugin_basename(__FILE__)])) :
+			
 				self::$options = get_option('rss_options');
 				
 				if (self::version != self::$options['version']) :
-				
+					
 					self::$options['version'] = self::version;
 					
 					unset(self::$options['tags'], self::$options['sizes']);
@@ -105,22 +133,6 @@ class Rss_Image_Feed {
 				
 				endif;
 				
-			endif;
-			
-		else:
-			
-			self::$options = get_option('rss_options');
-			
-			if (self::version != self::$options['version']) :
-				
-				self::$options['version'] = self::version;
-				
-				unset(self::$options['tags'], self::$options['sizes']);
-				
-				self::$options['cache'] = array();
-				
-				update_option('rss_options', self::$options);
-			
 			endif;
 		
 		endif;
@@ -173,7 +185,7 @@ class Rss_Image_Feed {
 		
 		$screen = get_current_screen();
 		
-		self::$options = array(
+		$defaults = array(
 			'image_size' => 200,
 			'force_excerpt' => false,
 			'excerpt_size' => 3,
@@ -184,13 +196,13 @@ class Rss_Image_Feed {
 		
 		if (is_multisite() && $screen->is_network) :
 		
-			self::$options['sitewide'] = true; 
+			$defaults['sitewide'] = true; 
 		
-			add_site_option('rss_options', self::$options);
+			add_site_option('rss_options', $defaults);
 		
 		else : 
 		
-			add_option('rss_options', self::$options);
+			add_option('rss_options', $defaults);
 		
 		endif;
 		
