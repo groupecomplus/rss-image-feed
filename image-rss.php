@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
-Version: 3.4
+Version: 3.5
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -32,7 +32,9 @@ Text Domain: rss-image-feed
 
 if(preg_match('#' . basename(__FILE__) . '#', $_SERVER['PHP_SELF'])) die('Sorry, you don\'t have direct access to this page.');
 
-define( 'RIF_PATH', plugin_dir_path(__FILE__) );
+if (!defined('RIF_PATH')) define( 'RIF_PATH', plugin_dir_path(__FILE__) );
+if (!defined('RIF_BASE')) define( 'RIF_BASE', plugin_basename(__FILE__) );
+
 
 # loading the framework
 if (!class_exists('A5_Excerpt')) require_once RIF_PATH.'class-lib/A5_ExcerptClass.php';
@@ -45,7 +47,7 @@ if (!class_exists('RIF_Admin')) require_once RIF_PATH.'class-lib/RIF_AdminClass.
 
 class Rss_Image_Feed {
 	
-	const language_file = 'rss-image-feed', version = '3.3';
+	const language_file = 'rss-image-feed', version = '3.5';
 	
 	private static $options;
 	
@@ -73,7 +75,7 @@ class Rss_Image_Feed {
 		
 			$plugins = get_site_option('active_sitewide_plugins');
 			
-			if (isset($plugins[plugin_basename(__FILE__)])) :
+			if (in_array(RIF_BASE, $plugins)) :
 		
 				self::$options = get_site_option('rss_options');
 				
@@ -92,8 +94,8 @@ class Rss_Image_Feed {
 			else :
 			
 				$plugins = get_option('active_plugins');
-			
-				if (isset($plugins[plugin_basename(__FILE__)])) :
+				
+				if (in_array(RIF_BASE, $plugins)) :
 			
 					self::$options = get_option('rss_options');
 					
@@ -117,7 +119,7 @@ class Rss_Image_Feed {
 		
 			$plugins = get_option('active_plugins');
 			
-			if (isset($plugins[plugin_basename(__FILE__)])) :
+			if (in_array(RIF_BASE, $plugins)) :
 			
 				self::$options = get_option('rss_options');
 				
@@ -156,9 +158,7 @@ class Rss_Image_Feed {
 	
 	function register_links($links, $file) {
 		
-		$base = plugin_basename(__FILE__);
-		
-		if ($file == $base) :
+		if ($file == RIF_BASE) :
 		
 			$links[] = '<a href="http://wordpress.org/extend/plugins/rss-image-feed/faq/" target="_blank">'.__('FAQ', self::language_file).'</a>';
 			$links[] = '<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=LLUFQDHG33XCE" target="_blank">'.__('Donate', self::language_file).'</a>';
@@ -171,9 +171,7 @@ class Rss_Image_Feed {
 	
 	function register_action_links( $links, $file ) {
 		
-		$base = plugin_basename(__FILE__);
-		
-		if ($file == $base) array_unshift($links, '<a href="'.admin_url('plugins.php?page=set-feed-imgage-size').'">'.__('Settings', self::language_file).'</a>');
+		if ($file == RIF_BASE) array_unshift($links, '<a href="'.admin_url('plugins.php?page=set-feed-imgage-size').'">'.__('Settings', self::language_file).'</a>');
 	
 		return $links;
 	
@@ -244,19 +242,19 @@ class Rss_Image_Feed {
 	
 	function add_image_content($content){
 		
-		$rif_text = strip_shortcodes(get_the_content());
+		if (!is_feed()) return $content;
 		
 		$imagetag = $this->get_feed_image();
 		
+		$content = $this->get_feed_excerpt($content, 9999);
+		
 		if (true === self::$options['force_excerpt']) :
 		
-			$rif_text = $this->get_feed_excerpt($rif_text);
+			$content = $this->get_feed_excerpt($content);
 			
 		endif;
 			
-		$content = $imagetag.$rif_text;
-			
-		return $content;
+		return $imagetag.$content;
 	
 	}
 	
@@ -269,6 +267,8 @@ class Rss_Image_Feed {
 		$img_container = '';
 		
 		$rif_tags = A5_Image::tags(self::language_file);
+		
+		self::$options = (is_plugin_active_for_network(plugin_basename(__FILE__))) ? get_site_option('rss-options') : get_option('rss-option');
 	
 		$rif_image_alt = $rif_tags['image_alt'];
 		$rif_image_title = $rif_tags['image_title'];
@@ -308,14 +308,25 @@ class Rss_Image_Feed {
 	
 	// getting excerpt if forced
 	
-	function get_feed_excerpt($text) {
+	function get_feed_excerpt($text, $count = false) {
 		
-		$cache = array();
-	
+		$count = ($count) ? $count : self::$options['excerpt_size'];
+		
 		$args = array(
 			'content' => $text,
-			'count' => self::$options['excerpt_size']
+			'count' => $count
 		);
+		
+		if ($count) :
+		
+			$xtra_args = array(
+					'shortcode' => true,
+					'format' => true
+			);
+			
+			$args = array_merge($args, $xtra_args);
+			
+		endif;
 		
 		return A5_Excerpt::text($args);
 		

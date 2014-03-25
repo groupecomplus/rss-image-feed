@@ -4,7 +4,7 @@
  *
  * Class A5 Images
  * * @ A5 Plugin Framework
- * Version: 0.9.8 alpha
+ * Version: 0.99 beta
  *
  * Gets the alt and title tag for attachments
  *
@@ -130,26 +130,22 @@ class A5_Image {
 
 		endif;
 		
-		if (isset($number) || !isset($attachment_id)) : 
+		$image = preg_match_all('#(?:<a[^>]+?href=["|\'](?P<link_url>[^\s]+?)["|\'][^>]*?>\s*)?(?P<img_tag><img[^>]+?src=["|\'](?P<img_url>[^\s]+?)["|\'].*?>){1}(?:\s*</a>)?#is', do_shortcode(get_the_content()), $matches);
+		
+		if (0 == $image) return false;
 	
-			$image = preg_match_all('#(?:<a[^>]+?href=["|\'](?P<link_url>[^\s]+?)["|\'][^>]*?>\s*)?(?P<img_tag><img[^>]+?src=["|\'](?P<img_url>[^\s]+?)["|\'].*?>){1}(?:\s*</a>)?#is', do_shortcode(get_the_content()), $matches);
+		$number = (isset($number)) ? $number : 1;
 		
-			if (0 == $image) return false;
+		if ($number == 'last' || $number > count($matches ['img_url'])) $number = count($matches ['img_url']);
 		
-			$number = (isset($number)) ? $number : 1;
-			
-			if ($number == 'last' || $number > count($matches ['img_url'])) $number = count($matches ['img_url']);
-			
-			if ($number > 0) $number -= 1;
-			
-			$img_src = $matches ['img_url'] [$number];
-			
-			$upload_dir = wp_upload_dir();
-			
-			if (strstr($img_src, $upload_dir['baseurl'])) $attachment_id = self::get_attachment_id_from_src($img_src);
-			
-		endif;
+		if ($number > 0) $number -= 1;
 		
+		$img_src = $matches ['img_url'] [$number];
+		
+		$upload_dir = wp_upload_dir();
+		
+		if (strstr($img_src, $upload_dir['baseurl'])) $attachment_id = self::get_attachment_id_from_src($img_src);
+			
 		if (isset($attachment_id)) :
 				
 			$thumb = wp_get_attachment_image_src($attachment_id, $image_size);
@@ -166,11 +162,11 @@ class A5_Image {
 		
 		endif;
 		
-		$options = ($multisite) ? get_site_option($options) : get_option($options);
+		$options = ($multisite) ? get_site_option($option) : get_option($option);
 		
 		$cache = $options['cache'];
 		
-		if (array_key_exists($img_src, $cache)) return array($img_src, $cache[$img_src][1], $cache[$img_src][2]);
+		if (array_key_exists($img_src, $cache)) return array($img_src, $cache[$img_src][0], $cache[$img_src][1]);
 		
 		$img_tag = $matches['img_tag'][$number];
 		
@@ -226,15 +222,7 @@ class A5_Image {
 		if ( preg_match( '#height=["|\']?([\d%]+)["|\']?#i', $tag, $height_string ) )
 			$height = $height_string[1];
 			
-		if (strpos($width, '%') || strpos($height, '%')) :
-		
-			unset($width, $height);
-			
-		else :
-		
-			return array('width' => $width, 'height' => $height);
-			
-		endif;
+		if (!strpos($width, '%') && !strpos($height, '%')) return array('width' => $width, 'height' => $height);
 			
 		$image_info = wp_get_image_editor($img);
 			
