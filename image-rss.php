@@ -47,7 +47,7 @@ if (!class_exists('RIF_Admin')) require_once RIF_PATH.'class-lib/RIF_AdminClass.
 
 class Rss_Image_Feed {
 	
-	const language_file = 'rss-image-feed', version = '3.5';
+	const language_file = 'rss-image-feed', version = '3.6';
 	
 	private static $options;
 	
