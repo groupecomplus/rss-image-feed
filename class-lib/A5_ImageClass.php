@@ -3,7 +3,8 @@
 /**
  *
  * Class A5 Images
- * * @ A5 Plugin Framework
+ *
+ * @ A5 Plugin Framework
  * Version: 0.99 beta
  *
  * Gets the alt and title tag for attachments
@@ -71,7 +72,7 @@ class A5_Image {
 	 *
 	 * @param: $id, $option (for caching, so that we don't touch the file over and over again)
 	 *
-	 * @optional param: [$image_size (i.e 'medium')], [$width], [$height], [$number]
+	 * @optional param: [$image_size (i.e 'medium')], [$width], [$height], [$number], [$multisite]
 	 * 
 	 */
 	 
@@ -79,26 +80,32 @@ class A5_Image {
 		
 		extract($args);
 		
+		$multisite = (isset($multisite)) ? $multisite : false;
+		
 		if (!isset($image_size) && !isset($height) && !isset($width)) $image_size = 'thumbnail';
 		
 		$default_sizes = array('large', 'medium', 'thumbnail');
 		
 		$defaults = self::get_defaults();
 		
-		if (in_array($image_size, $default_sizes)) :
+		if (!isset($width)) :
 		
-			$width = $default_sizes[$image_size]['w'];
-		
-			$height = $default_sizes[$image_size]['h'];
-		
-		else :
-		
-			global $_wp_additional_image_sizes;
+			if (in_array($image_size, $default_sizes)) :
 			
-			$width = $_wp_additional_image_sizes[$image_size]['width'];
+				$width = $default_sizes[$image_size]['w'];
 			
-			$height = ($_wp_additional_image_sizes[$image_size]['crop'] === false) ? $_wp_additional_image_sizes[$image_size]['height'] : 9999;
-		
+				$height = $default_sizes[$image_size]['h'];
+			
+			else :
+			
+				global $_wp_additional_image_sizes;
+				
+				$width = $_wp_additional_image_sizes[$image_size]['width'];
+				
+				$height = ($_wp_additional_image_sizes[$image_size]['crop'] === false) ? $_wp_additional_image_sizes[$image_size]['height'] : 9999;
+			
+			endif;
+			
 		endif;
 		
 		if ($width <= $defaults['large']['w']) $size = 'large';
@@ -132,7 +139,7 @@ class A5_Image {
 		
 		$image = preg_match_all('#(?:<a[^>]+?href=["|\'](?P<link_url>[^\s]+?)["|\'][^>]*?>\s*)?(?P<img_tag><img[^>]+?src=["|\'](?P<img_url>[^\s]+?)["|\'].*?>){1}(?:\s*</a>)?#is', do_shortcode(get_the_content()), $matches);
 		
-		if (0 == $image) return false;
+		if (0 == $image && !isset($attachment_id)) return false;
 	
 		$number = (isset($number)) ? $number : 1;
 		
@@ -140,13 +147,19 @@ class A5_Image {
 		
 		if ($number > 0) $number -= 1;
 		
-		$img_src = $matches ['img_url'] [$number];
+		if (0 != $image) :
 		
-		$upload_dir = wp_upload_dir();
-		
-		if (strstr($img_src, $upload_dir['baseurl'])) $attachment_id = self::get_attachment_id_from_src($img_src);
+			$img_src = $matches ['img_url'] [$number];
+			
+			$upload_dir = wp_upload_dir();
+			
+			if (strstr($img_src, $upload_dir['baseurl'])) $attachment_id = self::get_attachment_id_from_src($img_src);
+			
+		endif;
 			
 		if (isset($attachment_id)) :
+		
+			if (!isset($image_size)) $image_size = array($width, $height);
 				
 			$thumb = wp_get_attachment_image_src($attachment_id, $image_size);
 			
