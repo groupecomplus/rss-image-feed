@@ -82,19 +82,19 @@ class A5_Image {
 		
 		$multisite = (isset($multisite)) ? $multisite : false;
 		
-		if (!isset($image_size) && !isset($height) && !isset($width)) $image_size = 'thumbnail';
+		if (!isset($image_size) && !isset($height) && (!isset($width) || empty($width))) $image_size = 'thumbnail';
 		
 		$default_sizes = array('large', 'medium', 'thumbnail');
 		
 		$defaults = self::get_defaults();
 		
-		if (!isset($width)) :
+		if (!isset($width) || empty($width)) :
 		
 			if (in_array($image_size, $default_sizes)) :
 			
-				$width = $default_sizes[$image_size]['w'];
+				$width = $defaults[$image_size]['w'];
 			
-				$height = $default_sizes[$image_size]['h'];
+				$height = $defaults[$image_size]['h'];
 			
 			else :
 			
@@ -175,6 +175,8 @@ class A5_Image {
 		
 		endif;
 		
+		if (!isset($img_src)) return false;
+		
 		$options = ($multisite) ? get_site_option($option) : get_option($option);
 		
 		$cache = $options['cache'];
@@ -185,31 +187,38 @@ class A5_Image {
 		
 		$size = self::get_size($img_tag, $img_src);
 		
-		if ($width > $size['width']) $width = $size['width'];
+		if (false != $size) :
 		
-		if ($height > $size['height']) $height = $size['height'];
+			if ($width > $size['width']) $width = $size['width'];
+			
+			if ($height > $size['height']) $height = $size['height'];
+			
+			$thumb_width = $size['width'];
+			
+			$thumb_height = $size['height'];
+			
+			$ratio = $thumb_width/$thumb_height;
+			
+			$args = array(
+				'ratio' => $ratio,
+				'thumb_width' => $thumb_width,
+				'thumb_height' => $thumb_height,
+				'width' => $width,
+				'height' => $height
+			);
+			
+			$new_size = self::count_size($args);
+			
+			$thumb_width = $new_size['width'];
+			$thumb_height = $new_size['height'];
+			
+		else :
 		
-		$thumb_width = $size['width'];
+			$thumb_width = $size['width'];
+			$thumb_height = false;
 		
-		$thumb_height = $size['height'];
-		
-		if (!$thumb_height) return false;
-		
-		$ratio = $thumb_width/$thumb_height;
-		
-		$args = array(
-			'ratio' => $ratio,
-			'thumb_width' => $thumb_width,
-			'thumb_height' => $thumb_height,
-			'width' => $width,
-			'height' => $height
-		);
-		
-		$new_size = self::count_size($args);
-		
-		$thumb_width = $new_size['width'];
-		$thumb_height = $new_size['height'];
-		
+		endif;
+			
 		$thumb = array ($img_src, $thumb_width, $thumb_height);
 		
 		$cache[$img_src] = array($thumb_width, $thumb_height);
@@ -263,7 +272,7 @@ class A5_Image {
 				
 			endif;
 			
-			$size = array ( 'width' => $imgsize[0], 'height' => $imgsize[1] );
+			$size = (!empty($imgsize)) ? array ( 'width' => $imgsize[0], 'height' => $imgsize[1] ) : false;
 		
 		endif;
 		

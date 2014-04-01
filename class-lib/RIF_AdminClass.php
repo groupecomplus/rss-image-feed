@@ -2,9 +2,9 @@
 
 /**
  *
- * Class Ads Easy Plus Admin
+ * Class RSS Image Feed Admin
  *
- * @ Ads Easy Plus
+ * @ RSS Image Feed
  *
  * building admin page
  *
