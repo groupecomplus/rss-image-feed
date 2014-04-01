@@ -3,8 +3,9 @@
 /**
  *
  * Class A5 Images
- * * @ A5 Plugin Framework
- * Version: 0.9.8 alpha
+ *
+ * @ A5 Plugin Framework
+ * Version: 0.99 beta
  *
  * Gets the alt and title tag for attachments
  *
@@ -14,55 +15,43 @@
 
 class A5_Image {
 	
-	public static function tags($post, $image_cache, $language_file, $sitewide = false) {
+	public static function tags($language_file) {
 		
-		$options = (true === $sitewide) ? get_site_option($image_cache) : get_option($image_cache);
+		$id = get_the_ID();
 		
-		$cache = $options['tags'];
-		
-		if (array_key_exists($post->ID, $cache)) :
-		
-			$image_alt = $cache[$post->ID]['image_alt'];
-			$image_title = $cache[$post->ID]['image_title'];
-			$title_tag = $cache[$post->ID]['title_tag'];
+		if (has_post_thumbnail()) :
+			
+			$attachment_id = get_post_thumbnail_id();
+			
+			$attachment = get_post($attachment_id);
 		
 		else:
-	
-			setup_postdata($post);
 			
 			$args = array(
 				'post_type' => 'attachment',
-				'numberposts' => 1,
+				'posts_per_page' => 1,
 				'post_status' => null,
-				'post_parent' => $post->ID
+				'post_parent' => $id
 			);
-			
-			$title_tag = __('Permalink to', $language_file).' '.esc_attr($post->post_title);
 			
 			$attachments = get_posts( $args );
 			
-			if ( $attachments ) :
+			if ( $attachments ) $attachment = $attachments[0];
 			
-				$attachment = $attachments[0];
-				  
-				$image_alt = trim(strip_tags( get_post_meta( $attachment->ID, '_wp_attachment_image_alt', true) ));
-				
-				$image_title = trim(strip_tags( $attachment->post_title ));
-			
-			endif;
-		
-			$image_alt = (empty($image_alt)) ? esc_attr($post->post_title) : esc_attr($image_alt);
-			$image_title = (empty($image_title)) ? esc_attr($post->post_title) : esc_attr($image_title);
-			
-			$cache[$post->ID]['image_alt'] = $image_alt;
-			$cache[$post->ID]['image_title'] = $image_title;
-			$cache[$post->ID]['title_tag'] = $title_tag;
-			
-			$options['tags'] = $cache;
-			
-			(true === $sitewide) ? update_site_option($image_cache, $options) : update_option($image_cache, $options);
-		
 		endif;
+		
+		if (!isset($attachment)) return false;
+		
+		$title = get_the_title($id);
+		
+		$title_tag = __('Permalink to', $language_file).' '.esc_attr($title);
+				  
+		$image_alt = trim(strip_tags( get_post_meta( $attachment->ID, '_wp_attachment_image_alt', true) ));
+		
+		$image_title = trim(strip_tags( $attachment->post_title ));
+	
+		$image_alt = (empty($image_alt)) ? esc_attr($title) : esc_attr($image_alt);
+		$image_title = (empty($image_title)) ? esc_attr($title) : esc_attr($image_title);
 		
 		$tags = array(
 			'image_alt' => $image_alt,
@@ -74,48 +63,132 @@ class A5_Image {
 	
 	} // tags
 	
-	// getting one image of a post with available sizes as the post thumbnail if there is no number specified, the first image is taken by default
-	// the last image will be taken, if the number is bigger than the amount of images in the post
-	
+	/**
+ 	 *
+	 * getting the post thumbnail in the size we want as featured image
+	 * if there's no thumbnail, an attachment is taken as featured image
+	 * if there's no attachment, the first image of the post is taken as featured image
+	 * if the variable number is specified all of the above is skipped and we look for that specific image in the post
+	 *
+	 * @param: $id, $option (for caching, so that we don't touch the file over and over again)
+	 *
+	 * @optional param: [$image_size (i.e 'medium')], [$width], [$height], [$number], [$multisite]
+	 * 
+	 */
+	 
 	public static function thumbnail($args) {
 		
 		extract($args);
 		
-		if (!isset($thumb)) : 
-	
-			$image = preg_match_all('/<\s*img[^>]+src\s*=\s*["\']?([^\s"\']+)["\']?[\s\/>]+/', do_shortcode($content), $matches);
+		$multisite = (isset($multisite)) ? $multisite : false;
+		
+		if (!isset($image_size) && !isset($height) && (!isset($width) || empty($width))) $image_size = 'thumbnail';
+		
+		$default_sizes = array('large', 'medium', 'thumbnail');
+		
+		$defaults = self::get_defaults();
+		
+		if (!isset($width) || empty($width)) :
+		
+			if (in_array($image_size, $default_sizes)) :
 			
-			$sitewide = (!empty($sitewide)) ? $sitewide : true;
+				$width = $defaults[$image_size]['w'];
 			
-			$number = (!empty($number)) ? $number : 1;
+				$height = $defaults[$image_size]['h'];
 			
-			if ($number == 'last' || $number > count($matches [1])) $number = count($matches [1]);
+			else :
 			
-			if ($number > 0) $number -= 1;
+				global $_wp_additional_image_sizes;
+				
+				$width = $_wp_additional_image_sizes[$image_size]['width'];
+				
+				$height = ($_wp_additional_image_sizes[$image_size]['crop'] === false) ? $_wp_additional_image_sizes[$image_size]['height'] : 9999;
 			
-			if ($image != 0) $thumb = $matches [1] [$number];
+			endif;
 			
 		endif;
 		
-		if (empty($thumb)) return false;
+		if ($width <= $defaults['large']['w']) $size = 'large';
+		if ($width <= $defaults['medium']['w']) $size = 'medium';
+		if ($width <= $defaults['thumbnail']['w']) $size = 'thumbnail';
 		
-		$options = (true === $sitewide) ? get_site_option($option) : get_option($option);
+		if (!isset($height)) $height = 9999;
 		
-		$cache = $options['sizes'];
+		if (!isset($number)) :
 		
-		if (array_key_exists($thumb, $cache) && ($cache[$thumb]['width'] == $width || $cache[$thumb]['height'] == $height)) :
-		
-			$thumb_width = $cache[$thumb]['width'];
-			$thumb_height = $cache[$thumb]['height'];
-		
-		else :
+			$post_meta = get_post_meta($id);
 			
-			$is_image = self::check_url($thumb);
+			if (array_key_exists('_thumbnail_id', $post_meta)) $attachment_id = $post_meta['_thumbnail_id'][0];
+				
+			if (!isset($attachment_id)) :
 			
-			if ($is_image === false) return false;
+				$args = array(
+				'post_type' => 'attachment',
+				'posts_per_page' => 1,
+				'post_status' => null,
+				'post_parent' => $id
+				);
+				
+				$attachments = get_posts( $args );
+				
+				if ( $attachments ) $attachment_id = $attachments[0]->ID;
 			
-			$size = self::get_size($thumb);
+			endif;
+
+		endif;
+		
+		$image = preg_match_all('#(?:<a[^>]+?href=["|\'](?P<link_url>[^\s]+?)["|\'][^>]*?>\s*)?(?P<img_tag><img[^>]+?src=["|\'](?P<img_url>[^\s]+?)["|\'].*?>){1}(?:\s*</a>)?#is', do_shortcode(get_the_content()), $matches);
+		
+		if (0 == $image && !isset($attachment_id)) return false;
+	
+		$number = (isset($number)) ? $number : 1;
+		
+		if ($number == 'last' || $number > count($matches ['img_url'])) $number = count($matches ['img_url']);
+		
+		if ($number > 0) $number -= 1;
+		
+		if (0 != $image) :
+		
+			$img_src = $matches ['img_url'] [$number];
 			
+			$upload_dir = wp_upload_dir();
+			
+			if (strstr($img_src, $upload_dir['baseurl'])) $attachment_id = self::get_attachment_id_from_src($img_src);
+			
+		endif;
+			
+		if (isset($attachment_id)) :
+		
+			if (!isset($image_size)) $image_size = array($width, $height);
+				
+			$thumb = wp_get_attachment_image_src($attachment_id, $image_size);
+			
+			if ($thumb) : 
+			
+				if ($thumb[3] === false) $smaller_thumb = wp_get_attachment_image_src($attachment_id, $size);
+				
+				if (isset($smaller_thumb)) $thumb[0] = $smaller_thumb[0];
+				
+				return $thumb;
+			
+			endif;
+		
+		endif;
+		
+		if (!isset($img_src)) return false;
+		
+		$options = ($multisite) ? get_site_option($option) : get_option($option);
+		
+		$cache = $options['cache'];
+		
+		if (array_key_exists($img_src, $cache)) return array($img_src, $cache[$img_src][0], $cache[$img_src][1]);
+		
+		$img_tag = $matches['img_tag'][$number];
+		
+		$size = self::get_size($img_tag, $img_src);
+		
+		if (false != $size) :
+		
 			if ($width > $size['width']) $width = $size['width'];
 			
 			if ($height > $size['height']) $height = $size['height'];
@@ -123,8 +196,6 @@ class A5_Image {
 			$thumb_width = $size['width'];
 			
 			$thumb_height = $size['height'];
-			
-			if (!$thumb_height) return false;
 			
 			$ratio = $thumb_width/$thumb_height;
 			
@@ -141,29 +212,40 @@ class A5_Image {
 			$thumb_width = $new_size['width'];
 			$thumb_height = $new_size['height'];
 			
-			$cache[$thumb]['width'] = $thumb_width;
-			$cache[$thumb]['height'] = $thumb_height;
-			
-			$options['sizes'] = $cache;
-			
-			(true === $sitewide) ? update_site_option($option, $options) : update_option($option, $options);
-			
+		else :
+		
+			$thumb_width = $size['width'];
+			$thumb_height = false;
+		
 		endif;
-	
-		$image_info = array (
-			'thumb' => $thumb,
-			'thumb_width' => $thumb_width,
-			'thumb_height' => $thumb_height
-		);
+			
+		$thumb = array ($img_src, $thumb_width, $thumb_height);
 		
-		return $image_info;
-	
-	}
-	
-	// getting the image size if having no tags in the image string
-	
-	public static function get_size($img) {
+		$cache[$img_src] = array($thumb_width, $thumb_height);
 		
+		$options['cache'] = $cache;
+		
+		if ($multisite) update_site_option($option, $options);
+		
+		else update_option($option, $options);
+		
+		return $thumb;
+	
+	} // thumbnail
+	
+	// getting the image size
+	
+	private static function get_size($tag, $img) {
+		
+		// First, check the image tag
+		if ( preg_match( '#width=["|\']?([\d%]+)["|\']?#i', $tag, $width_string ) )
+			$width = $width_string[1];
+
+		if ( preg_match( '#height=["|\']?([\d%]+)["|\']?#i', $tag, $height_string ) )
+			$height = $height_string[1];
+			
+		if (!strpos($width, '%') && !strpos($height, '%')) return array('width' => $width, 'height' => $height);
+			
 		$image_info = wp_get_image_editor($img);
 			
 		if ( ! is_wp_error($image_info) ) :
@@ -190,7 +272,7 @@ class A5_Image {
 				
 			endif;
 			
-			$size = array ( 'width' => $imgsize[0], 'height' => $imgsize[1] );
+			$size = (!empty($imgsize)) ? array ( 'width' => $imgsize[0], 'height' => $imgsize[1] ) : false;
 		
 		endif;
 		
@@ -200,11 +282,11 @@ class A5_Image {
 	
 	// counting the new size of the image
 	
-	public static function count_size($args) {
+	private static function count_size($args) {
 		
 		extract($args);
 		
-		if ($thumb_width && $height) :
+		if ($thumb_width && $height != 9999) :
 			
 			if ($ratio > 1) :
 					
@@ -234,39 +316,46 @@ class A5_Image {
 	
 	}
 	
-	// getting the default size
+	// getting the default sizes
 	
-	public static function get_default($plugin_width = false) {
+	private static function get_defaults() {
 	
-		if (!$plugin_width) :
-			
-			$width = get_option('thumbnail_size_w');
-			
-			if (!empty($width)) $width = 150;
-			
-			$height = get_option('thumbnail_size_h');
-			
-			if (!empty($height)) :
-			
-				$height = 150;
-				
-			endif;
-			
-		else : 
+		$defaults['large']['w'] = (get_option('large_size_w')) ? $width = get_option('large_size_w') : 1024;
+		$defaults['large']['h'] = (get_option('large_size_h')) ? $width = get_option('large_size_h') : 1024;
 		
-			$width = $plugin_width;
-			
-			$height = false;
+		$defaults['medium']['w'] = (get_option('medium_size_w')) ? $width = get_option('medium_size_w') : 300;
+		$defaults['medium']['h'] = (get_option('medium_size_h')) ? $width = get_option('medium_size_h') : 300;
 		
-		endif;
+		$defaults['thumbnail']['w'] = (get_option('thumbnail_size_w')) ? $width = get_option('thumbnail_size_w') : 150;
+		$defaults['thumbnail']['h'] = (get_option('thumbnail_size_h')) ? $width = get_option('thumbnail_size_h') : 150;
 		
-		return array ($width, $height);
+		return $defaults;
 		
 	}
 	
-	// Check whether url has status 200 and is image
+	// trying to get the attachment id from the image source
+	
+	private static function get_attachment_id_from_src ($image_src) {
+
+		global $wpdb;
+		
+		$upload_dir = wp_upload_dir();
+		
+		$image_src = preg_replace( '/-\d+x\d+(?=\.(jpg|jpeg|png|gif)$)/i', '', $image_src );
+		
+		$image_src = str_replace( $upload_dir['baseurl'] . '/', '', $image_src );
+		
+		$id = $wpdb->get_var( $wpdb->prepare( "SELECT wposts.ID FROM $wpdb->posts wposts, $wpdb->postmeta wpostmeta WHERE wposts.ID = wpostmeta.post_id AND wpostmeta.meta_key = '_wp_attached_file' AND wpostmeta.meta_value = '%s' AND wposts.post_type = 'attachment'", $image_src ) );
+		
+		if (!isset($id)) return false;
+		
+		return $id;
+
+	}
+	
+	// Check whether url has status 200 and is image (not in use at the moment)
 	 
-	private static function check_url($url, $type = false) {
+	public static function check_url($url, $type = false) {
 		
 		$return = get_headers($url, 1);
 		
