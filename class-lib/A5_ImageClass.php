@@ -137,7 +137,11 @@ class A5_Image {
 
 		endif;
 		
-		$image = preg_match_all('#(?:<a[^>]+?href=["|\'](?P<link_url>[^\s]+?)["|\'][^>]*?>\s*)?(?P<img_tag><img[^>]+?src=["|\'](?P<img_url>[^\s]+?)["|\'].*?>){1}(?:\s*</a>)?#is', do_shortcode(get_the_content()), $matches);
+		$content = get_the_content();
+		
+		$check = do_shortcode($content);
+		
+		$image = preg_match_all('#(?:<a[^>]+?href=["|\'](?P<link_url>[^\s]+?)["|\'][^>]*?>\s*)?(?P<img_tag><img[^>]+?src=["|\'](?P<img_url>[^\s]+?)["|\'].*?>){1}(?:\s*</a>)?#is', $check, $matches);
 		
 		if (0 == $image && !isset($attachment_id)) return false;
 	
@@ -191,7 +195,7 @@ class A5_Image {
 		
 			if ($width > $size['width']) $width = $size['width'];
 			
-			if ($height > $size['height']) $height = $size['height'];
+			if ($height != 9999 && $height > $size['height']) $height = $size['height'];
 			
 			$thumb_width = $size['width'];
 			
@@ -207,7 +211,7 @@ class A5_Image {
 				'height' => $height
 			);
 			
-			$new_size = self::count_size($args);
+			$new_size = self::calculate_size($args);
 			
 			$thumb_width = $new_size['width'];
 			$thumb_height = $new_size['height'];
@@ -280,9 +284,9 @@ class A5_Image {
 	
 	}
 	
-	// counting the new size of the image
+	// calculating the new size of the image
 	
-	private static function count_size($args) {
+	private static function calculate_size($args) {
 		
 		extract($args);
 		

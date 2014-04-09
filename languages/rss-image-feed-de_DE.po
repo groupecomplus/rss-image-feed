@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: RSS Image Feed\n"
-"POT-Creation-Date: 2014-03-24 12:43+0200\n"
-"PO-Revision-Date: 2014-03-24 12:44+0200\n"
+"POT-Creation-Date: 2014-04-09 23:00+0200\n"
+"PO-Revision-Date: 2014-04-09 23:00+0200\n"
 "Last-Translator: Waldemar Stoffel <stoffel@atelier-fuenf.de>\n"
 "Language-Team: Waldemar Stoffel <stoffel@atelier-fuenf.de>\n"
 "Language: de_DE\n"
@@ -18,11 +18,11 @@ msgstr ""
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-SearchPath-0: .\n"
 
-#: class-lib/A5_ImageClass.php:46
+#: class-lib/A5_ImageClass.php:47
 msgid "Permalink to"
 msgstr "Link zu:"
 
-#: class-lib/A5_OptionPageClass.php:31 image-rss.php:164
+#: class-lib/A5_OptionPageClass.php:31 image-rss.php:174
 msgid "Settings"
 msgstr "Einstellungen"
 
@@ -38,10 +38,6 @@ msgstr "http://blog.atelier-fuenf.de/wordpress-plugins/rss-image-feed"
 #: class-lib/RIF_AdminClass.php:85
 msgid "Plugin Support"
 msgstr "Plugin Support"
-
-#: class-lib/RIF_AdminClass.php:87
-msgid "Define the size of the images and summary in your feed."
-msgstr "Definiere die Größe der Bilder und des Auszugs in deinem Feed."
 
 #: class-lib/RIF_AdminClass.php:104
 msgid "Debug Info"
@@ -63,11 +59,19 @@ msgstr "Auszug erzwingen:"
 msgid "Limit Excerpt:"
 msgstr "Auszug limitieren:"
 
-#: class-lib/RIF_AdminClass.php:143
+#: class-lib/RIF_AdminClass.php:139
+msgid "Empty cache:"
+msgstr "Cache leeren:"
+
+#: class-lib/RIF_AdminClass.php:139
+msgid "You can empty the plugin&#39;s cache here, if necessary."
+msgstr "Falls nötig, kannst du hier den Cache des Plugins leeren."
+
+#: class-lib/RIF_AdminClass.php:145
 msgid "Change the size of the image and the excerpt here."
 msgstr "Ändere die Größe des Bildes und des Auszuges hier."
 
-#: class-lib/RIF_AdminClass.php:149
+#: class-lib/RIF_AdminClass.php:151
 msgid ""
 "Give here only the longest side of the image. The smaller side will be "
 "counted on displaying the image. There will be no cropping."
@@ -75,7 +79,7 @@ msgstr ""
 "Gib hier nur die längste Seite de Bildes an. Die kleinere Seite wird beim "
 "erstellen des Feed berechnet. Die Bilder werden nicht beschnitten."
 
-#: class-lib/RIF_AdminClass.php:155
+#: class-lib/RIF_AdminClass.php:157
 msgid ""
 "Click, to limit the post content to a summary if the post doesn&#39;t have "
 "an excerpt."
@@ -83,7 +87,7 @@ msgstr ""
 "Anklicken um einen Auszug im Feed zu erzwingen, wenn der Artikel keinen "
 "Auszug hat."
 
-#: class-lib/RIF_AdminClass.php:161
+#: class-lib/RIF_AdminClass.php:163
 msgid ""
 "How long should the summary of the article be? Enter the number of sentences "
 "here."
@@ -91,22 +95,29 @@ msgstr ""
 "Wie lang sollte der Auszug des Artikels sein? Gib die Anzahl der Sätze hier "
 "ein."
 
-#: class-lib/RIF_AdminClass.php:173
+#: class-lib/RIF_AdminClass.php:181
 msgid "Please enter a numeric value for the image size."
 msgstr "Bitte einen numerischen Wert für die Bildgröße eingeben."
 
-#: class-lib/RIF_AdminClass.php:183
+#: class-lib/RIF_AdminClass.php:191
 msgid "Please enter a numeric value for the excerpt length."
 msgstr "Bitte einen numerischen Wert für die Länge des Auszugs eingeben."
 
-#: class-lib/RIF_AdminClass.php:193
+#: class-lib/RIF_AdminClass.php:201
 msgid "Imagesize too large. Please choose a value smaller than 1000."
 msgstr "Bildgröße zu groß. Bitte wähle einen Wert kleiner als 1000."
 
-#: image-rss.php:151
+#: class-lib/RIF_AdminClass.php:213
+msgid "Cache emptied."
+msgstr "Cache geleert."
+
+#: image-rss.php:163
 msgid "FAQ"
 msgstr "FAQ"
 
-#: image-rss.php:152
+#: image-rss.php:164
 msgid "Donate"
 msgstr "Spenden"
+
+#~ msgid "Define the size of the images and summary in your feed."
+#~ msgstr "Definiere die Größe der Bilder und des Auszugs in deinem Feed."
