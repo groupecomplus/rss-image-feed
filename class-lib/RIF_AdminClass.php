@@ -84,9 +84,7 @@ class RIF_Admin extends A5_OptionPage {
 		
 		parent::open_page('Feed Images', __('http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/rss-image-feed', self::language_file), 'rss-image-feed', __('Plugin Support', self::language_file));
 		
-		_e('Define the size of the images and summary in your feed.', self::language_file);
-		
-		if (is_plugin_active_for_network('rss-image-feed/image-rss.php')) settings_errors();
+		settings_errors();
 		
 		$action = (is_plugin_active_for_network('rss-image-feed/image-rss.php')) ? '?page=set-feed-imgage-size&action=update' : 'options.php';
 		
@@ -135,6 +133,8 @@ class RIF_Admin extends A5_OptionPage {
 		add_settings_field('force_excerpt', __('Force Excerpt:', self::language_file), array(&$this, 'display_force'), 'new_image_settings', 'image_rss_settings');
 		
 		add_settings_field('excerpt_size', __('Limit Excerpt:', self::language_file), array(&$this, 'display_excptsize'), 'new_image_settings', 'image_rss_settings');
+		
+		add_settings_field('reset', __('Empty cache:', self::language_file), array(&$this, 'reset_field'), 'new_image_settings', 'image_rss_settings', array(__('You can empty the plugin&#39;s cache here, if necessary.', self::language_file)));
 	
 	}
 	
@@ -161,8 +161,16 @@ class RIF_Admin extends A5_OptionPage {
 		a5_number_field('excerpt_size', 'rss_options[excerpt_size]', self::$options['excerpt_size'], __('How long should the summary of the article be? Enter the number of sentences here.', self::language_file), array('step' => 1));
 		
 	}
+	
+	function reset_field($labels) {
+		
+		a5_checkbox('reset_options', 'rss_options[reset_options]', @self::$options['reset_options'], $labels[0]);
+		
+	}
 		
 	function validate_options($input) {
+		
+		$error = false;
 		
 		$newinput['image_size'] = trim($input['image_size']);
 		$newinput['force_excerpt'] = (isset($input['force_excerpt'])) ? true : false;
@@ -174,6 +182,8 @@ class RIF_Admin extends A5_OptionPage {
 				
 				$newinput['image_size'] = 200;
 				
+				$error = true;
+				
 			endif;
 			
 			$newinput['image_size'] = intval($newinput['image_size']);
@@ -183,6 +193,8 @@ class RIF_Admin extends A5_OptionPage {
 				add_settings_error('rss_options', 'not-numeric-excerpt-size', __('Please enter a numeric value for the excerpt length.', self::language_file), 'error');
 				
 				$newinput['excerpt_size'] = 3;
+				
+				$error = true;
 				
 			endif;
 			
@@ -194,6 +206,8 @@ class RIF_Admin extends A5_OptionPage {
 				
 				$newinput['image_size'] = 200;
 				
+				$error = true;
+				
 			endif;
 			
 			if ($newinput['image_size'] != self::$options['image_size']) add_image_size( 'rss-image', $newinput['image_size'], $newinput['image_size'] );
@@ -201,6 +215,18 @@ class RIF_Admin extends A5_OptionPage {
 		self::$options['image_size'] = $newinput['image_size'];
 		self::$options['force_excerpt'] = $newinput['force_excerpt'];
 		self::$options['excerpt_size'] = $newinput['excerpt_size'];
+		
+		if (isset($input['reset_options'])) :
+		
+			self::$options['cache'] = array();
+			
+			add_settings_error('rss_options', 'empty-cache', __('Cache emptied.', self::language_file), 'updated');
+			
+			$error = 'custom';
+			
+		endif;
+		
+		if (false == $error) add_settings_error('rss_options', 'updated', __('Settings saved.'), 'updated');
 		
 		return self::$options;
 		

@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
-Version: 3.7
+Version: 3.8
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -47,7 +47,7 @@ if (!class_exists('RIF_Admin')) require_once RIF_PATH.'class-lib/RIF_AdminClass.
 
 class Rss_Image_Feed {
 	
-	const language_file = 'rss-image-feed', version = '3.7';
+	const language_file = 'rss-image-feed', version = '3.8';
 	
 	private static $options;
 	
@@ -83,10 +83,6 @@ class Rss_Image_Feed {
 				
 					self::$options['version'] = self::version;
 					
-					unset(self::$options['tags'], self::$options['sizes']);
-					
-					self::$options['cache'] = array();
-					
 					update_site_option('rss_options', self::$options);
 				
 				endif;
@@ -102,10 +98,6 @@ class Rss_Image_Feed {
 					if (self::version != self::$options['version']) :
 					
 						self::$options['version'] = self::version;
-						
-						unset(self::$options['tags'], self::$options['sizes']);
-						
-						self::$options['cache'] = array();
 						
 						update_option('rss_options', self::$options);
 					
@@ -126,10 +118,6 @@ class Rss_Image_Feed {
 				if (self::version != self::$options['version']) :
 					
 					self::$options['version'] = self::version;
-					
-					unset(self::$options['tags'], self::$options['sizes']);
-					
-					self::$options['cache'] = array();
 					
 					update_option('rss_options', self::$options);
 				
@@ -334,6 +322,6 @@ class Rss_Image_Feed {
 	
 }
 
-$rss_image_feed = new Rss_Image_Feed;
+$Rss_Image_Feed = new Rss_Image_Feed;
 
 ?>
