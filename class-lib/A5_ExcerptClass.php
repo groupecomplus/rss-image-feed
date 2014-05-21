@@ -3,8 +3,9 @@
 /**
  *
  * Class A5 Excerpt
- * * @ A5 Plugin Framework
- * Version: 0.9.8 alpha
+ *
+ * @ A5 Plugin Framework
+ * Version: 0.99 beta
  *
  * Gets the excerpt of a post according to some parameters
  *
@@ -45,6 +46,8 @@ class A5_Excerpt {
 				$excerpt_base = (empty($shortcode)) ? preg_replace('/\[caption(.*?)\[\/caption\]/', '', $content) : strip_shortcodes($content);
 			
 				$text = (empty($format)) ? strip_tags(trim(preg_replace('/\s\s+/', ' ', str_replace(array("\r\n", "\n", "\r", "&nbsp;"), ' ', $excerpt_base)))) : preg_replace('#<img(.*?)/>#', '', $excerpt_base);
+				
+				$text = preg_replace('/\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|$!:,.;]*[A-Z0-9+&@#\/%=~_|$]/i', '', $text);
 				
 				$length = (isset($count)) ? $count : 3;
 				
