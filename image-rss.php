@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
-Version: 3.8
+Version: 3.9
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -47,7 +47,7 @@ if (!class_exists('RIF_Admin')) require_once RIF_PATH.'class-lib/RIF_AdminClass.
 
 class Rss_Image_Feed {
 	
-	const language_file = 'rss-image-feed', version = '3.8';
+	const language_file = 'rss-image-feed', version = '3.9';
 	
 	private static $options;
 	
@@ -63,10 +63,6 @@ class Rss_Image_Feed {
 		add_filter('plugin_action_links', array(&$this, 'register_action_links'), 10, 2);
 	
 		load_plugin_textdomain(self::language_file, false , basename(dirname(__FILE__)).'/languages');
-		
-		add_action('init', array(&$this, 'speedy'), 9999);
-		add_action('admin_head', array(&$this, 'speedy'), 9999);
-		add_action('wp_head', array(&$this, 'speedy'), 9999);
 		
 		register_activation_hook(  __FILE__, array(&$this, 'install') );
 		register_deactivation_hook(  __FILE__, array(&$this, 'uninstall') );
@@ -131,17 +127,6 @@ class Rss_Image_Feed {
 		
 		$RIF_Admin = new RIF_Admin(self::$options['sitewide']);
 		
-	}
-	
-	/**
-	 * 
-	 * Trying to make things faster by flushing. (Not sure whether it works)
-	 *
-	 */
-	function speedy() {
-		
-		flush();
-	
 	}
 	
 	function register_links($links, $file) {
@@ -277,14 +262,12 @@ class Rss_Image_Feed {
 			
 			$rif_width = $rif_image_info[1];
 		
-			$rif_height = $rif_image_info[2];
+			$rif_height = ($rif_image_info[2]) ? ' height="'.$rif_image_info[2].'"' :'';
 		
 			$eol = "\r\n";
 			$tab = "\t";
 		
-			if ($rif_width) $rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" width="'.$rif_width.'" height="'.$rif_height.'" /></a>';
-				
-			else $rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" style="maxwidth: '.$rif_max.'; maxheight: '.$rif_max.';" /></a>';
+			$rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" width="'.$rif_width.'"'.$rif_height.' /></a>';
 			
 			$img_container=$eol.$tab.'<div>'.$eol.$tab.$rif_img_tag.$eol.$tab.'</div>'.$eol.$tab.'<br/>'.$eol.$tab;
 			

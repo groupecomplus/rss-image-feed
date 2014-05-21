@@ -119,7 +119,7 @@ class A5_Image {
 			$post_meta = get_post_meta($id);
 			
 			if (array_key_exists('_thumbnail_id', $post_meta)) $attachment_id = $post_meta['_thumbnail_id'][0];
-				
+			
 			if (!isset($attachment_id)) :
 			
 				$args = array(
@@ -145,19 +145,23 @@ class A5_Image {
 		
 		if (0 == $image && !isset($attachment_id)) return false;
 	
-		$number = (isset($number)) ? $number : 1;
-		
-		if ($number == 'last' || $number > count($matches ['img_url'])) $number = count($matches ['img_url']);
-		
-		if ($number > 0) $number -= 1;
-		
-		if (0 != $image) :
-		
-			$img_src = $matches ['img_url'] [$number];
+		if (!isset($attachment_id) || isset($number)):
 			
-			$upload_dir = wp_upload_dir();
+			$number = (isset($number)) ? $number : 1;
 			
-			if (strstr($img_src, $upload_dir['baseurl'])) $attachment_id = self::get_attachment_id_from_src($img_src);
+			if ($number == 'last' || $number > count($matches ['img_url'])) $number = count($matches ['img_url']);
+			
+			if ($number > 0) $number -= 1;
+			
+			if (0 != $image) :
+			
+				$img_src = $matches ['img_url'] [$number];
+				
+				$upload_dir = wp_upload_dir();
+				
+				if (strstr($img_src, $upload_dir['baseurl'])) $attachment_id = self::get_attachment_id_from_src($img_src);
+				
+			endif;
 			
 		endif;
 			
@@ -248,8 +252,12 @@ class A5_Image {
 		if ( preg_match( '#height=["|\']?([\d%]+)["|\']?#i', $tag, $height_string ) )
 			$height = $height_string[1];
 			
-		if (!strpos($width, '%') && !strpos($height, '%')) return array('width' => $width, 'height' => $height);
+		if (isset($width) && isset($height)) :
+		
+			if (!strpos($width, '%') && !strpos($height, '%')) return array('width' => $width, 'height' => $height);
 			
+		endif;
+		
 		$image_info = wp_get_image_editor($img);
 			
 		if ( ! is_wp_error($image_info) ) :
