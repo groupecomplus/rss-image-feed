@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
-Version: 3.9
+Version: 4.0
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -47,7 +47,7 @@ if (!class_exists('RIF_Admin')) require_once RIF_PATH.'class-lib/RIF_AdminClass.
 
 class Rss_Image_Feed {
 	
-	const language_file = 'rss-image-feed', version = '3.9';
+	const language_file = 'rss-image-feed', version = '4.0';
 	
 	private static $options;
 	
@@ -79,6 +79,8 @@ class Rss_Image_Feed {
 				
 					self::$options['version'] = self::version;
 					
+					self::$options['image_number'] = false;
+					
 					update_site_option('rss_options', self::$options);
 				
 				endif;
@@ -94,6 +96,8 @@ class Rss_Image_Feed {
 					if (self::version != self::$options['version']) :
 					
 						self::$options['version'] = self::version;
+						
+						self::$options['image_number'] = false;
 						
 						update_option('rss_options', self::$options);
 					
@@ -114,6 +118,8 @@ class Rss_Image_Feed {
 				if (self::version != self::$options['version']) :
 					
 					self::$options['version'] = self::version;
+					
+					self::$options['image_number'] = false;
 					
 					update_option('rss_options', self::$options);
 				
@@ -162,7 +168,8 @@ class Rss_Image_Feed {
 			'excerpt_size' => 3,
 			'version' => self::version,
 			'sitewide' => false,
-			'cache' => array()
+			'cache' => array(), 
+			'image_number' => false
 		);
 		
 		if (is_multisite() && $screen->is_network) :
@@ -253,7 +260,9 @@ class Rss_Image_Feed {
 			'image_size' => 'rss-image',
 			'multisite' => self::$options['sitewide']
 		);
-		   
+		
+		if (self::$options['image_number']) $args['number'] = self::$options['image_number'];
+		
 		$rif_image_info = A5_Image::thumbnail($args);
 		
 		if ($rif_image_info) :

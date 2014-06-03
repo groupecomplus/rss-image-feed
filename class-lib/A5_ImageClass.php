@@ -5,7 +5,7 @@
  * Class A5 Images
  *
  * @ A5 Plugin Framework
- * Version: 0.99 beta
+ * Version: 1.0 beta
  *
  * Gets the alt and title tag for attachments
  *
@@ -114,11 +114,11 @@ class A5_Image {
 		
 		if (!isset($height)) $height = 9999;
 		
+		if (!isset($image_size)) $image_size = array($width, $height);
+		
 		if (!isset($number)) :
 		
-			$post_meta = get_post_meta($id);
-			
-			if (array_key_exists('_thumbnail_id', $post_meta)) $attachment_id = $post_meta['_thumbnail_id'][0];
+			if (has_post_thumbnail()) $attachment_id = get_post_thumbnail_id();
 			
 			if (!isset($attachment_id)) :
 			
@@ -134,19 +134,39 @@ class A5_Image {
 				if ( $attachments ) $attachment_id = $attachments[0]->ID;
 			
 			endif;
+			
+			if (isset($attachment_id)) :
+			
+				$thumb = self::get_image($attachment_id, $image_size);
+			
+				if (false === $thumb) unset($thumb, $attachment_id);
+				
+			endif;
 
+		endif;
+		
+		if (!is_single()) : 
+		
+			global $more;
+			
+			$more_old = $more;
+			
+			$more = 1;
+			
 		endif;
 		
 		$content = get_the_content();
 		
 		$check = do_shortcode($content);
 		
+		if (!is_single()) $more = $more_old;
+		
 		$image = preg_match_all('#(?:<a[^>]+?href=["|\'](?P<link_url>[^\s]+?)["|\'][^>]*?>\s*)?(?P<img_tag><img[^>]+?src=["|\'](?P<img_url>[^\s]+?)["|\'].*?>){1}(?:\s*</a>)?#is', $check, $matches);
 		
 		if (0 == $image && !isset($attachment_id)) return false;
-	
-		if (!isset($attachment_id) || isset($number)):
-			
+		
+		if (isset($number) || !isset($attachment_id)):
+		
 			$number = (isset($number)) ? $number : 1;
 			
 			if ($number == 'last' || $number > count($matches ['img_url'])) $number = count($matches ['img_url']);
@@ -167,19 +187,9 @@ class A5_Image {
 			
 		if (isset($attachment_id)) :
 		
-			if (!isset($image_size)) $image_size = array($width, $height);
+			$thumb = self::get_image($attachment_id, $image_size);
 				
-			$thumb = wp_get_attachment_image_src($attachment_id, $image_size);
-			
-			if ($thumb) : 
-			
-				if ($thumb[3] === false) $smaller_thumb = wp_get_attachment_image_src($attachment_id, $size);
-				
-				if (isset($smaller_thumb)) $thumb[0] = $smaller_thumb[0];
-				
-				return $thumb;
-			
-			endif;
+			return $thumb;
 		
 		endif;
 		
@@ -363,6 +373,24 @@ class A5_Image {
 		
 		return $id;
 
+	}
+	
+	// getting the image source for the thumbnail
+	
+	private static function get_image($attachment_id, $image_size) {
+		
+		$thumb = wp_get_attachment_image_src($attachment_id, $image_size);
+			
+		if ($thumb) : 
+		
+			if ($thumb[3] === false) $smaller_thumb = wp_get_attachment_image_src($attachment_id, $size);
+			
+			if (isset($smaller_thumb)) $thumb[0] = $smaller_thumb[0];
+		
+		endif;
+			
+		return $thumb;
+		
 	}
 	
 	// Check whether url has status 200 and is image (not in use at the moment)
