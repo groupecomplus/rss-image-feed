@@ -383,7 +383,7 @@ class A5_Image {
 			
 		if ($thumb) : 
 		
-			if ($thumb[3] === false) $smaller_thumb = wp_get_attachment_image_src($attachment_id, $size);
+			if ($thumb[3] === false) $smaller_thumb = wp_get_attachment_image_src($attachment_id, $image_size);
 			
 			if (isset($smaller_thumb)) $thumb[0] = $smaller_thumb[0];
 		
