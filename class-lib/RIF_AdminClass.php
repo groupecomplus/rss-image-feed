@@ -17,21 +17,38 @@ class RIF_Admin extends A5_OptionPage {
 	
 	function __construct($multisite) {
 		
-		add_action('admin_init', array(&$this, 'initialize_settings'));
+		add_action('admin_init', array($this, 'initialize_settings'));
+		
+		if (WP_DEBUG == true) add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));
 		
 		if ($multisite) :
 		
-			add_action('network_admin_menu', array(&$this, 'add_site_admin_menu'));
+			add_action('network_admin_menu', array($this, 'add_site_admin_menu'));
 				
 			self::$options = get_site_option('rss_options');
 				
 		else :
 			
-			add_action('admin_menu', array(&$this, 'add_admin_menu'));
+			add_action('admin_menu', array($this, 'add_admin_menu'));
 		
 			self::$options = get_option('rss_options');
 				
 		endif;
+		
+	}
+	
+	/**
+	 *
+	 * Make debug info collapsable
+	 *
+	 */
+	function enqueue_scripts($hook){
+		
+		if ($hook != 'plugins_page_rss-image-feed') return;
+		
+		wp_enqueue_script('dashboard');
+		
+		if (wp_is_mobile()) wp_enqueue_script('jquery-touch-punch');
 		
 	}
 	
@@ -42,7 +59,7 @@ class RIF_Admin extends A5_OptionPage {
 	 */
 	function add_admin_menu() {
 		
-		add_plugins_page('RSS Image Feed', '<img alt="" src="'.plugins_url('rss-image-feed/img/a5-icon-11.png').'"> RSS Image Feed', 'administrator', 'set-feed-imgage-size', array(&$this, 'build_options_page'));
+		add_plugins_page('RSS Image Feed', '<img alt="" src="'.plugins_url('rss-image-feed/img/a5-icon-11.png').'"> RSS Image Feed', 'administrator', 'rss-image-feed', array($this, 'build_options_page'));
 		
 	}
 	
@@ -53,7 +70,7 @@ class RIF_Admin extends A5_OptionPage {
 	 */
 	function add_site_admin_menu() {
 		
-		add_menu_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-feed-imgage-size', array(&$this, 'build_options_page'), plugins_url('rss-image-feed/img/a5-icon-16.png'));
+		add_menu_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'rss-image-feed', array($this, 'build_options_page'), plugins_url('rss-image-feed/img/a5-icon-16.png'));
 		
 	}
 	
@@ -86,9 +103,9 @@ class RIF_Admin extends A5_OptionPage {
 		
 		_e('Define the size of the images and summary in your feed.', self::language_file);
 		
-		if (is_plugin_active_for_network('rss-image-feed/image-rss.php')) settings_errors();
+		if (is_plugin_active_for_network(RIF_BASE)) settings_errors();
 		
-		$action = (is_plugin_active_for_network('rss-image-feed/image-rss.php')) ? '?page=set-feed-imgage-size&action=update' : 'options.php';
+		$action = (is_plugin_active_for_network(RIF_BASE)) ? '?page=rss-image-feed&action=update' : 'options.php';
 		
 		parent::open_form($action);
 		
@@ -98,20 +115,12 @@ class RIF_Admin extends A5_OptionPage {
 		submit_button();
 		
 		if (WP_DEBUG === true) :
+		
+			self::open_tab();
 			
-			echo '<div id="poststuff">';
-			
-			parent::open_draggable(__('Debug Info', self::language_file), 'debug-info');
-			
-			echo '<pre>';
-			
-			var_dump(self::$options);
-			
-			echo '</pre>';
-			
-			parent::close_draggable();
-			
-			echo '</div>';
+			self::sortable('deep-down', self::debug_info(self::$options, __('Debug Info', self::language_file)));
+		
+			self::close_tab();
 		
 		endif;
 		
@@ -126,23 +135,23 @@ class RIF_Admin extends A5_OptionPage {
 	 */
 	function initialize_settings() {
 		
-		register_setting('rss_options', 'rss_options', array(&$this, 'validate_options'));
+		register_setting('rss_options', 'rss_options', array($this, 'validate_options'));
 		
-		add_settings_section('image_rss_settings', __('RSS Settings', self::language_file), array(&$this, 'display_section'), 'new_image_settings');
+		add_settings_section('image_rss_settings', __('RSS Settings', self::language_file), array($this, 'display_section'), 'new_image_settings');
 		
-		add_settings_field('image_size', __('Image Size:', self::language_file), array(&$this, 'display_imgsize'), 'new_image_settings', 'image_rss_settings');
+		add_settings_field('image_size', __('Image Size:', self::language_file), array($this, 'display_imgsize'), 'new_image_settings', 'image_rss_settings');
 		
-		add_settings_field('image_number', __('Image Number:', self::language_file), array(&$this, 'display_imgnmbr'), 'new_image_settings', 'image_rss_settings');
+		add_settings_field('image_number', __('Image Number:', self::language_file), array($this, 'display_imgnmbr'), 'new_image_settings', 'image_rss_settings');
 		
-		add_settings_field('force_excerpt', __('Force Excerpt:', self::language_file), array(&$this, 'display_force'), 'new_image_settings', 'image_rss_settings');
+		add_settings_field('force_excerpt', __('Force Excerpt:', self::language_file), array($this, 'display_force'), 'new_image_settings', 'image_rss_settings');
 		
-		add_settings_field('excerpt_size', __('Limit Excerpt:', self::language_file), array(&$this, 'display_excptsize'), 'new_image_settings', 'image_rss_settings');
+		add_settings_field('excerpt_size', __('Limit Excerpt:', self::language_file), array($this, 'display_excptsize'), 'new_image_settings', 'image_rss_settings');
 	
 	}
 	
 	function display_section() {
 		
-		echo '<p>'.__('Change the size of the image and the excerpt here.', self::language_file).'</p>';
+		self::tag_it(__('Change the size of the image and the excerpt here.', self::language_file), 'p');
 	
 	}
 	

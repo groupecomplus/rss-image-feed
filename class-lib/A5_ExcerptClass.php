@@ -5,13 +5,13 @@
  * Class A5 Excerpt
  *
  * @ A5 Plugin Framework
- * Version: 1.0 beta
+ * Version: 1.0 beta 20141124
  *
  * Gets the excerpt of a post according to some parameters
  *
  * standard parameters: offset(=0), usertext, excerpt, count
- * additional parameters: class(classname), filter(boolean), shortcode(boolean), format(boolean), readmore(boolean),
- * rmtext(string)
+ * additional parameters: class(classname), filter(boolean), shortcode(boolean), format(boolean), links(boolean),
+ * readmore_link(boolean), readmore_text(string)
  *
  */
 
@@ -31,6 +31,8 @@ class A5_Excerpt {
 		
 		$format = (isset($format)) ? $format : false;
 		
+		$links = (isset($links)) ? $links : false;
+		
 		if (!empty($usertext)) :
 		
 			$output = $usertext;
@@ -43,11 +45,15 @@ class A5_Excerpt {
 				
 			else :
 			
-				$excerpt_base = (empty($shortcode)) ? preg_replace('/\[caption(.*?)\[\/caption\]/', '', $content) : strip_shortcodes($content);
+				$excerpt_base = (!empty($shortcode)) ? preg_replace('/(\[caption.*?caption\])/i', '', $content) : strip_shortcodes($content);
 			
-				$text = (empty($format)) ? strip_tags(trim(preg_replace('/\s\s+/', ' ', str_replace(array("\r\n", "\n", "\r", "&nbsp;"), ' ', $excerpt_base)))) : preg_replace('#<img(.*?)/>#', '', $excerpt_base);
+				$text = (empty($format)) ? strip_tags(trim(preg_replace('/\s\s+/', ' ', str_replace(array("\r\n", "\n", "\r", "&nbsp;"), ' ', $excerpt_base)))) : preg_replace('#(<a.*?><img.*?></a>)|(<img.*?>)#i', '', $excerpt_base);
 				
-				$text = preg_replace('/\b(https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|$!:,.;]*[A-Z0-9+&@#\/%=~_|$]/i', '', $text);
+				if (!$links) $text = preg_replace('#(<a.*?>)|(</a>)#i', '', $text);
+				
+				//erase videos
+				
+				$text = preg_replace('/[^"](https?|ftp|file):\/\/[-A-Z0-9+&@#\/%?=~_|$!:,.;]*[A-Z0-9+&@#\/%=~_|$][^"]/i', '', $text);
 				
 				$length = (isset($count)) ? $count : 3;
 				

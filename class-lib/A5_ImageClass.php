@@ -5,7 +5,7 @@
  * Class A5 Images
  *
  * @ A5 Plugin Framework
- * Version: 1.0 beta
+ * Version: 1.0 beta 20141124
  *
  * Gets the alt and title tag for attachments
  *
@@ -163,7 +163,23 @@ class A5_Image {
 		
 		$image = preg_match_all('#(?:<a[^>]+?href=["|\'](?P<link_url>[^\s]+?)["|\'][^>]*?>\s*)?(?P<img_tag><img[^>]+?src=["|\'](?P<img_url>[^\s]+?)["|\'].*?>){1}(?:\s*</a>)?#is', $check, $matches);
 		
-		if (0 == $image && !isset($attachment_id)) return false;
+		if (0 == $image && !isset($attachment_id)) :
+		
+			if (strstr($content, 'gallery')) :
+			
+				$ids = preg_match_all('#ids=["|\']([^\s]+?)["|\']#is', $content, $matches);
+				
+				$ids = explode(',', $matches[1][0]);
+				
+				$attachment_id = trim($ids[0]);
+			
+			else :
+			
+				return false;
+				
+			endif;
+			
+		endif;
 		
 		if (isset($number) || !isset($attachment_id)):
 		

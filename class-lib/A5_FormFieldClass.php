@@ -5,7 +5,7 @@
  * Class A5 FormField
  *
  * @ A5 Plugin Framework
- * Version: 1.0 beta
+ * Version: 1.0 beta 20141124
  *
  * Gets all sort of input fields for plugins by Atelier 5 
  *
@@ -14,6 +14,8 @@
  */
 
 class A5_FormField {
+	
+	const version = '1.0 beta 20141124';
 	
 	public $formfield;
 	
@@ -25,7 +27,7 @@ class A5_FormField {
 		$tab = "\t";
 		
 		$id = (isset($field_id) && !is_array($field_id)) ? ' id="'.$field_id.'"' : '';
-		$label = (isset($label)) ? '<label for="'.$field_id.'">'.$label.'</label>' : '';
+		$label = (!empty($label)) ? '<label for="'.$field_id.'">'.$label.'</label>' : '';
 		$name = (isset($field_name)) ? ' name="'.$field_name.'"' : '';
 		$atts = '';
 		
@@ -235,8 +237,9 @@ function a5_checkbox($field_id, $field_name, $value = false, $label = false, $at
 					'field_name' => $field_name,
 					'value' => $value,
 					'label' => $label,
-					'attributes' => (array) $attributes
 					);
+					
+	if ($attributes) $args['attributes'] = (array) $attributes;
 					
 	$checkbox = new A5_FormField($args);
 	
@@ -268,9 +271,10 @@ function a5_radio($field_id, $field_name, $value = false, $label = false, $attri
 					'field_id' => $field_id,
 					'field_name' => $field_name,
 					'value' => $value,
-					'label' => $label,
-					'attributes' => (array) $attributes
+					'label' => $label
 					);
+					
+	if ($attributes) $args['attributes'] = (array) $attributes;
 					
 	$radio = new A5_FormField($args);
 	
@@ -657,7 +661,7 @@ function a5_range_field($field_id, $field_name, $min, $max, $value = false, $lab
 	 
 	$attributes['min'] = $min;
 	
-	$attributes['min'] = $max;
+	$attributes['max'] = $max;
 	
 	$args = array ( 'type' => 'range',
 					'field_id' => $field_id,
@@ -948,8 +952,10 @@ function a5_radiogroup($fieldset_id, $fieldset_name, $item_options, $legend = fa
  
 function a5_resize_textarea($field_id, $echo = true) {
 	
+	if (!is_array($field_id)) $field_id = (array) $field_id;
+	
 	$args = array ( 'type' => 'resize',
-					'field_id' => (array) $field_id,
+					'field_id' => $field_id,
 					'echo' => $echo
 					);
 					
@@ -961,4 +967,15 @@ function a5_resize_textarea($field_id, $echo = true) {
 
 }
 
+ /**
+ *
+ * getting the framework version
+ *
+ */
+ 
+function a5_get_version() {
+	
+	return 'Framework version: '.A5_FormField::version;
+
+}
 ?>
