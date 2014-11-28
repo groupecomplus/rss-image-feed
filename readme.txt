@@ -3,8 +3,8 @@ Contributors: tepelstreel
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=LLUFQDHG33XCE
 Tags: rss, feed, excerpt, content, custom, customize, image, images
 Requires at least: 2.7
-Tested up to: 3.9
-Stable tag: 3.8
+Tested up to: 4.1
+Stable tag: 4.1
 
 The RSS Image Feed adds the first image of a post to your feeds, even in firefox and even if you only display the excerpt.
 
@@ -31,6 +31,22 @@ Try emptying the cache of your browser and reload the feed. The images should be
 2. The Feed with images in Opera
 
 == Changelog ==
+
+= 4.1 =
+
+* WP 4.1 ready
+
+= 4.0.1 =
+
+* minor bugfix
+
+= 4.0 =
+
+* if not wanting to have the featured image in your feed, you can now choose whatever image of the post
+
+= 3.9 =
+
+* finally fixed the white screen problems
 
 = 3.8 =
 
@@ -137,3 +153,19 @@ problem of double content fixed; framework made more foolproof; error on post sa
 = 3.8 =
 
 tried to fix the white screen problems
+
+= 3.9 =
+
+finally fixed the white screen problems
+
+= 4.0 =
+
+if not wanting to have the featured image in your feed, you can now choose whatever image of the post
+
+= 4.0.1 =
+
+minor bugfix
+
+= 4.1 =
+
+WP 4.1 ready

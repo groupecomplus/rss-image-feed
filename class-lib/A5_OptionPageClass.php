@@ -5,7 +5,7 @@
  * Class A5 Option Page
  *
  * @ A5 Plugin Framework
- * Version: 0.99 beta
+ * Version: 1.0 beta 20141124
  *
  * Gets all sort of containers for the flexible A5 settings pages
  *
@@ -67,7 +67,9 @@ class A5_OptionPage {
 		
 		foreach ($menu_items as $menu_item => $args) :
 		
-			echo $eol.$tab.'<a href="?page='.$page.'&tab='.$menu_item.'" class="nav-tab'.$args['class'].'">'.$args['text'].'</a>';
+			$id = (array_key_exists('id', $args)) ? ' id="'.$args['id'].'"' : '';
+		
+			echo $eol.$tab.'<a'.$id.' class="nav-tab'.$args['class'].'" href="?page='.$page.'&tab='.$menu_item.'">'.$args['text'].'</a>';
 		
 		endforeach;
 		
@@ -77,74 +79,187 @@ class A5_OptionPage {
 	
 	/**
 	 *
-	 * Opening and closing the tabs
+	 * Opening and closing the tabs, columns etc.
 	 *
 	 */
-	static function open_tab($plugin_name, $tab_name) {
+	static function open_tab($columns = false) {
 		
 		$eol = "\r\n";
 		
-		echo $eol.'<div id="'.$plugin_name.'-admin" class="metabox-holder">'.$eol.'<div id="'.$plugin_name.'-'.$tab_name.'-sortable" class="meta-box-sortables ui-sortable">'.$eol;
+		$n = ($columns) ? '-'.$columns : '';
 		
-	} 
-	 
+		$columns = ($columns) ? ' columns-'.$columns : '';
+		
+		echo $eol.'<div id="poststuff">'.$eol.'<div id="post-body" class="metabox-holder'.$columns.'">'.$eol.'<div id="postbox-container'.$n.'" class="postbox-container">';
+		
+	}
+	
 	static function close_tab() {
 		
 		$eol = "\r\n";
 		
-		echo $eol.'</div>'.$eol.'</div>'.$eol;
+		echo $eol.'</div>'.$eol.'</div>'.$eol.'</div>'.$eol;
 		
 	}
 	
 	/**
 	 *
-	 * Opening and closing the draggable boxes
+	 * Wrapping sections into postboxes
 	 *
 	 */
-	static function open_draggable($label, $id) {
+	static function postbox($label, $id, $sections ) {
+		
+		if (!is_array($sections)) $sections = array($sections);
+		
+		$postbox = self::open_postbox($label, $id);
+		
+		ob_start();
+		
+		foreach ($sections as $section) do_settings_sections($section);
+			
+		$postbox .= ob_get_contents();
+		
+		ob_end_clean();
+		
+		$postbox .= self::close_postbox();
+		
+		return $postbox;
+		
+	}
+	
+	/**
+	 *
+	 * Opening and closing the postboxes
+	 *
+	 */
+	static function open_postbox($label, $id, $closed = false) {
 		
 		$eol = "\r\n";
 		
 		$tab = "\t";
 		
 		$dtab = $tab.$tab;
+		
+		$class = (false === $closed) ? '' : ' closed';
 	
-		echo $eol.'<div id="'.$id.'" class="postbox ">'.$eol.$tab.'<div class="handlediv" title="'.__('Click to toggle').'">'.$eol.$dtab.'<br />'.$eol.$tab.'</div>'.$eol.$tab;
+		$output = $eol.'<div id="'.$id.'" class="postbox'.$class.'">'.$eol.$tab.'<div class="handlediv" title="'.__('Click to toggle').'">'.$eol.$dtab.'<br />'.$eol.$tab.'</div>'.$eol.$tab;
 			
-		echo $eol.'<h3 class="hndle">'.$eol.$dtab.'<span>'.$label.'</span>'.$eol.$tab.'</h3>'.$eol.$tab.'<div class="inside">'.$eol.$tab;	
+		$output .= $eol.'<h3 class="hndle">'.$eol.$dtab.'<span>'.$label.'</span>'.$eol.$tab.'</h3>'.$eol.$tab.'<div class="inside">'.$eol.$tab;	
+		
+		return $output;
 		
 	}
 	
-	static function close_draggable() {
+	static function close_postbox() {
 		
-		self::close_tab();
+		$eol = "\r\n";
+		
+		return $eol.'</div>'.$eol.'</div>';
 		
 	}
 	
 	/**
 	 *
-	 * Wrapping sections in containers
+	 * Wrapping postboxes into sortables
 	 *
 	 */
-	static function wrap_section($section_id, $atts = false) {
+	static function sortable($id, $postboxes) {
+		
+		if (!is_array($postboxes)) $postboxes = array($postboxes);
+		
+		$sortable = self::open_sortable($id);
+		
+		foreach ($postboxes as $postbox) :
+		
+			$sortable .= $postbox;
+			
+		endforeach;
+		
+		$sortable .= self::close_sortable();
+		
+		echo $sortable;
+		
+	}
+	
+	/**
+	 *
+	 * Opening and closing the postboxes
+	 *
+	 */
+	static function open_sortable($id) {
+		
+		$eol = "\r\n";
+		
+		$tab = "\t";
+	
+		$output = $eol.'<div id="'.$id.'-sortables" class="meta-box-sortables ui-sortable">'.$eol.$tab;
+		
+		return $output;
+		
+	}
+	
+	static function close_sortable() {
+		
+		return "\r\n</div>";
+		
+	}
+	
+	/**
+	 *
+	 * Changing to the next column
+	 *
+	 */
+	 static function column($n) {
+		 
+		 $eol = "\r\n";
+		 
+		 echo $eol.'</div>'.$eol.'<div id="postbox-container-'.$n.'" class="postbox-container">';
+		 
+	 }
+	 
+	/**
+	 *
+	 * Wrapping different sections in containers inside postbox
+	 *
+	 */
+	static function wrapper($id, $label, $postbox_id, $sections, $atts = false) {
+		
+		$wrapper = self::open_sortable($id);
+			
+		$wrapper .=  self::open_postbox($label, $postbox_id);
+		
+		foreach ($sections as $section) $wrapper .= self::wrap_section($section, $atts);
+		
+		$wrapper .= self::clear_it(false);
+		
+		$wrapper .= self::close_postbox();
+		
+		$wrapper .= self::close_sortable();
+		
+		echo $wrapper;
+			
+	}
+	
+	/**
+	 *
+	 * Wrapping section in container
+	 *
+	 */
+	static function wrap_section($section_id, $attributes = false) {
 		
 		$eol = "\r\n";
 		
 		$tab = "\t";
 		
-		$attributes = '';
-		
-		if (false !== $atts) :
-		
-			foreach ($atts as $attribute => $value) $attributes .= ' '.$attribute.'="'.$value.'"';
-			
-		endif;
-	
-		echo $eol.'<div'.$attributes.'>'.$eol.$tab;
+		ob_start();
 		
 		do_settings_sections($section_id);
 		
-		echo $eol.'</div>'.$eol;
+		$section = ob_get_contents();
+		
+		ob_end_clean();
+	
+		return self::tag_it($section, 'div', 1, $attributes);
 		
 	}
 	
@@ -226,6 +341,92 @@ class A5_OptionPage {
 		echo $clear_both;
 	
 	}
+	
+	/**
+	 *
+	 * Output options for debugging
+	 *
+	 */
+	static function debug_info($options, $label) {
+	
+		$postbox = self::open_postbox($label, 'debug-info', true);
+		
+		$postbox .= self::tag_it(a5_get_version(), 'p');
+		
+		ob_start();
+		
+		var_dump($options);
+		
+		$options = ob_get_contents();
+		
+		ob_end_clean();
+		
+		$postbox .= self::tag_it($options, 'pre', 1);
+		
+		$postbox .= self::close_postbox();
+		
+		return $postbox;
+		
+	}
+	
+	/**
+	 *
+	 * Output help box
+	 *
+	 */
+	static function help_box($text, $label) {
+		
+		$eol = "\r\n";
+		
+		$tab = "\t";
+		
+		$postbox = self::open_postbox($label, sanitize_key($label));
+		
+		$postbox .= $text;
+		
+		$postbox .= self::close_postbox();
+		
+		return $postbox;
+		
+	}
+	
+	/**
+	 *
+	 * Output donation box
+	 *
+	 */
+	static function donation_box($text, $label, $paypal = false, $flattr = false) {
+		
+		$eol = "\r\n";
+		
+		$tab = "\t";
+		
+		$postbox = self::open_postbox($label, 'donations');
+		
+		$postbox .= $text;
+		
+		if ($paypal) :
+		
+			$postbox .= '<form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">'.$eol.$tab.'<input type="hidden" name="cmd" value="_s-xclick">'.$eol.$tab;
+			$postbox .= '<input type="hidden" name="hosted_button_id" value="'.$paypal.'">'.$eol.$tab;
+			$postbox .= '<input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">'.$eol.$tab;
+			$postbox .= '<img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">'.$eol.$tab.'</form>'.$eol.$tab;
+			
+		endif;
+		
+		if ($flattr) :
+		
+			$postbox .= $eol.$tab.'<a href="https://flattr.com/submit/auto?user_id=tepelstreel&url='.$flattr.'" target="_blank">'.$eol.$tab;
+			$postbox .= '<img src="//api.flattr.com/button/flattr-badge-large.png" alt="Flattr this" title="Flattr this" border="0"></a>'.$eol.$tab;
+			
+		endif;
+		
+		$postbox .= self::close_postbox();
+		
+		return $postbox;
+		
+	}
+
 	
 } // A5_OptionPage
 

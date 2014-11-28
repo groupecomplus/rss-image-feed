@@ -3,7 +3,7 @@
 Plugin Name: RSS Image Feed 
 Plugin URI: http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/image-feed
 Description: RSS Image Feed is not literally producing a feed of images but it adds the first image of the post to the normal feeds of your blog. Those images display even if you have the summary in the feed and not the content.
-Version: 3.8
+Version: 4.1
 Author: Waldemar Stoffel
 Author URI: http://www.waldemarstoffel.com
 License: GPL3
@@ -47,7 +47,7 @@ if (!class_exists('RIF_Admin')) require_once RIF_PATH.'class-lib/RIF_AdminClass.
 
 class Rss_Image_Feed {
 	
-	const language_file = 'rss-image-feed', version = '3.8';
+	const language_file = 'rss-image-feed', version = '4.1';
 	
 	private static $options;
 	
@@ -55,21 +55,19 @@ class Rss_Image_Feed {
 	
 		/* hooking into the feed for content and excerpt */
 	
-		add_filter('the_excerpt_rss', array(&$this, 'add_image_excerpt'));
-		add_filter('the_content_feed', array(&$this, 'add_image_content'));
+		add_filter('the_excerpt_rss', array($this, 'add_image_excerpt'));
+		add_filter('the_content_feed', array($this, 'add_image_content'));
 		
 		//Additional links on the plugin page
-		add_filter('plugin_row_meta', array(&$this, 'register_links'), 10, 2);	
-		add_filter('plugin_action_links', array(&$this, 'register_action_links'), 10, 2);
+		add_filter('plugin_row_meta', array($this, 'register_links'), 10, 2);	
+		add_filter('plugin_action_links', array($this, 'register_action_links'), 10, 2);
+		
+		add_filter('image_size_names_choose', array($this, 'rss_image_to_menu'));
 	
 		load_plugin_textdomain(self::language_file, false , basename(dirname(__FILE__)).'/languages');
 		
-		add_action('init', array(&$this, 'speedy'), 9999);
-		add_action('admin_head', array(&$this, 'speedy'), 9999);
-		add_action('wp_head', array(&$this, 'speedy'), 9999);
-		
-		register_activation_hook(  __FILE__, array(&$this, 'install') );
-		register_deactivation_hook(  __FILE__, array(&$this, 'uninstall') );
+		register_activation_hook(  __FILE__, array($this, 'install') );
+		register_deactivation_hook(  __FILE__, array($this, 'uninstall') );
 		
 		if (is_multisite()) :
 		
@@ -133,17 +131,6 @@ class Rss_Image_Feed {
 		
 	}
 	
-	/**
-	 * 
-	 * Trying to make things faster by flushing. (Not sure whether it works)
-	 *
-	 */
-	function speedy() {
-		
-		flush();
-	
-	}
-	
 	function register_links($links, $file) {
 		
 		if ($file == RIF_BASE) :
@@ -157,11 +144,17 @@ class Rss_Image_Feed {
 	
 	}
 	
-	function register_action_links( $links, $file ) {
+	function register_action_links($links, $file) {
 		
-		if ($file == RIF_BASE) array_unshift($links, '<a href="'.admin_url('plugins.php?page=set-feed-imgage-size').'">'.__('Settings', self::language_file).'</a>');
+		if ($file == RIF_BASE) array_unshift($links, '<a href="'.admin_url('plugins.php?page=rss-image-feed').'">'.__('Settings', self::language_file).'</a>');
 	
 		return $links;
+	
+	}
+	
+	function rss_image_to_menu($sizes) {
+		
+		return array_merge($sizes, array('rss-image' => __('RSS Image', self::language_file)));
 	
 	}
 	
@@ -177,7 +170,8 @@ class Rss_Image_Feed {
 			'excerpt_size' => 3,
 			'version' => self::version,
 			'sitewide' => false,
-			'cache' => array()
+			'cache' => array(), 
+			'image_number' => false
 		);
 		
 		if (is_multisite() && $screen->is_network) :
@@ -216,11 +210,14 @@ class Rss_Image_Feed {
 		
 		if (!is_feed()) return $output;
 		
-		$rif_text = strip_tags(strip_shortcodes(get_the_content()));
+		if (true === self::$options['force_excerpt']) :
 		
-		if ($rif_text != $output && true === self::$options['force_excerpt']) :
+			$args = array(
+				'content' => $output,
+				'count' => self::$options['excerpt_size']
+			); 
 		
-			$output = $this->get_feed_excerpt($rif_text);
+			$output = A5_Excerpt::text($args);
 		
 		endif;
 		
@@ -234,15 +231,19 @@ class Rss_Image_Feed {
 		
 		if (!is_feed()) return $content;
 		
+		$args = array(
+			'content' => $content,
+			'count' => 9999,
+			'shortcode' => true,
+			'format' => true,
+			'links' => true
+		);
+		
 		$imagetag = $this->get_feed_image();
 		
-		$content = $this->get_feed_excerpt($content, 9999);
+		if (true === self::$options['force_excerpt']) $args['count'] = self::$options['excerpt_size'];
 		
-		if (true === self::$options['force_excerpt']) :
-		
-			$content = $this->get_feed_excerpt($content);
-			
-		endif;
+		$content = A5_Excerpt::text($args);
 			
 		return $imagetag.$content;
 	
@@ -268,7 +269,9 @@ class Rss_Image_Feed {
 			'image_size' => 'rss-image',
 			'multisite' => self::$options['sitewide']
 		);
-		   
+		
+		if (self::$options['image_number']) $args['number'] = self::$options['image_number'];
+		
 		$rif_image_info = A5_Image::thumbnail($args);
 		
 		if ($rif_image_info) :
@@ -277,46 +280,18 @@ class Rss_Image_Feed {
 			
 			$rif_width = $rif_image_info[1];
 		
-			$rif_height = $rif_image_info[2];
+			$rif_height = ($rif_image_info[2]) ? ' height="'.$rif_image_info[2].'"' :'';
 		
 			$eol = "\r\n";
 			$tab = "\t";
 		
-			if ($rif_width) $rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" width="'.$rif_width.'" height="'.$rif_height.'" /></a>';
-				
-			else $rif_img_tag = '<a href="'.get_permalink().'" title="'.$rif_image_title.'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" style="maxwidth: '.$rif_max.'; maxheight: '.$rif_max.';" /></a>';
+			$rif_img_tag = '<a href="'.get_permalink().'"><img title="'.$rif_image_title.'" src="'.$rif_thumb.'" alt="'.$rif_image_alt.'" width="'.$rif_width.'"'.$rif_height.' /></a>';
 			
-			$img_container=$eol.$tab.'<div>'.$eol.$tab.$rif_img_tag.$eol.$tab.'</div>'.$eol.$tab.'<br/>'.$eol.$tab;
+			$img_container=$eol.$tab.'<div>'.$eol.$tab.$rif_img_tag.$eol.$tab.'</div>'.$eol.$tab;
 			
 		endif;
 		
 		return $img_container;
-		
-	}
-	
-	// getting excerpt if forced
-	
-	function get_feed_excerpt($text, $count = false) {
-		
-		$count = ($count) ? $count : self::$options['excerpt_size'];
-		
-		$args = array(
-			'content' => $text,
-			'count' => $count
-		);
-		
-		if ($count) :
-		
-			$xtra_args = array(
-					'shortcode' => true,
-					'format' => true
-			);
-			
-			$args = array_merge($args, $xtra_args);
-			
-		endif;
-		
-		return A5_Excerpt::text($args);
 		
 	}
 	

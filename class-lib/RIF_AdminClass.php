@@ -17,21 +17,38 @@ class RIF_Admin extends A5_OptionPage {
 	
 	function __construct($multisite) {
 		
-		add_action('admin_init', array(&$this, 'initialize_settings'));
+		add_action('admin_init', array($this, 'initialize_settings'));
+		
+		if (WP_DEBUG == true) add_action('admin_enqueue_scripts', array($this, 'enqueue_scripts'));
 		
 		if ($multisite) :
 		
-			add_action('network_admin_menu', array(&$this, 'add_site_admin_menu'));
+			add_action('network_admin_menu', array($this, 'add_site_admin_menu'));
 				
 			self::$options = get_site_option('rss_options');
 				
 		else :
 			
-			add_action('admin_menu', array(&$this, 'add_admin_menu'));
+			add_action('admin_menu', array($this, 'add_admin_menu'));
 		
 			self::$options = get_option('rss_options');
 				
 		endif;
+		
+	}
+	
+	/**
+	 *
+	 * Make debug info collapsable
+	 *
+	 */
+	function enqueue_scripts($hook){
+		
+		if ($hook != 'plugins_page_rss-image-feed') return;
+		
+		wp_enqueue_script('dashboard');
+		
+		if (wp_is_mobile()) wp_enqueue_script('jquery-touch-punch');
 		
 	}
 	
@@ -42,7 +59,7 @@ class RIF_Admin extends A5_OptionPage {
 	 */
 	function add_admin_menu() {
 		
-		add_plugins_page('RSS Image Feed', '<img alt="" src="'.plugins_url('rss-image-feed/img/a5-icon-11.png').'"> RSS Image Feed', 'administrator', 'set-feed-imgage-size', array(&$this, 'build_options_page'));
+		add_plugins_page('RSS Image Feed', '<img alt="" src="'.plugins_url('rss-image-feed/img/a5-icon-11.png').'"> RSS Image Feed', 'administrator', 'rss-image-feed', array($this, 'build_options_page'));
 		
 	}
 	
@@ -53,7 +70,7 @@ class RIF_Admin extends A5_OptionPage {
 	 */
 	function add_site_admin_menu() {
 		
-		add_menu_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'set-feed-imgage-size', array(&$this, 'build_options_page'), plugins_url('rss-image-feed/img/a5-icon-16.png'));
+		add_menu_page('RSS Image Feed', 'RSS Image Feed', 'administrator', 'rss-image-feed', array($this, 'build_options_page'), plugins_url('rss-image-feed/img/a5-icon-16.png'));
 		
 	}
 	
@@ -84,9 +101,11 @@ class RIF_Admin extends A5_OptionPage {
 		
 		parent::open_page('Feed Images', __('http://wasistlos.waldemarstoffel.com/plugins-fur-wordpress/rss-image-feed', self::language_file), 'rss-image-feed', __('Plugin Support', self::language_file));
 		
-		settings_errors();
+		_e('Define the size of the images and summary in your feed.', self::language_file);
 		
-		$action = (is_plugin_active_for_network('rss-image-feed/image-rss.php')) ? '?page=set-feed-imgage-size&action=update' : 'options.php';
+		if (is_plugin_active_for_network(RIF_BASE)) settings_errors();
+		
+		$action = (is_plugin_active_for_network(RIF_BASE)) ? '?page=rss-image-feed&action=update' : 'options.php';
 		
 		parent::open_form($action);
 		
@@ -96,20 +115,12 @@ class RIF_Admin extends A5_OptionPage {
 		submit_button();
 		
 		if (WP_DEBUG === true) :
+		
+			self::open_tab();
 			
-			echo '<div id="poststuff">';
-			
-			parent::open_draggable(__('Debug Info', self::language_file), 'debug-info');
-			
-			echo '<pre>';
-			
-			var_dump(self::$options);
-			
-			echo '</pre>';
-			
-			parent::close_draggable();
-			
-			echo '</div>';
+			self::sortable('deep-down', self::debug_info(self::$options, __('Debug Info', self::language_file)));
+		
+			self::close_tab();
 		
 		endif;
 		
@@ -124,29 +135,35 @@ class RIF_Admin extends A5_OptionPage {
 	 */
 	function initialize_settings() {
 		
-		register_setting('rss_options', 'rss_options', array(&$this, 'validate_options'));
+		register_setting('rss_options', 'rss_options', array($this, 'validate_options'));
 		
-		add_settings_section('image_rss_settings', __('RSS Settings', self::language_file), array(&$this, 'display_section'), 'new_image_settings');
+		add_settings_section('image_rss_settings', __('RSS Settings', self::language_file), array($this, 'display_section'), 'new_image_settings');
 		
-		add_settings_field('image_size', __('Imagesize:', self::language_file), array(&$this, 'display_imgsize'), 'new_image_settings', 'image_rss_settings');
+		add_settings_field('image_size', __('Image Size:', self::language_file), array($this, 'display_imgsize'), 'new_image_settings', 'image_rss_settings');
 		
-		add_settings_field('force_excerpt', __('Force Excerpt:', self::language_file), array(&$this, 'display_force'), 'new_image_settings', 'image_rss_settings');
+		add_settings_field('image_number', __('Image Number:', self::language_file), array($this, 'display_imgnmbr'), 'new_image_settings', 'image_rss_settings');
 		
-		add_settings_field('excerpt_size', __('Limit Excerpt:', self::language_file), array(&$this, 'display_excptsize'), 'new_image_settings', 'image_rss_settings');
+		add_settings_field('force_excerpt', __('Force Excerpt:', self::language_file), array($this, 'display_force'), 'new_image_settings', 'image_rss_settings');
 		
-		add_settings_field('reset', __('Empty cache:', self::language_file), array(&$this, 'reset_field'), 'new_image_settings', 'image_rss_settings', array(__('You can empty the plugin&#39;s cache here, if necessary.', self::language_file)));
+		add_settings_field('excerpt_size', __('Limit Excerpt:', self::language_file), array($this, 'display_excptsize'), 'new_image_settings', 'image_rss_settings');
 	
 	}
 	
 	function display_section() {
 		
-		echo '<p>'.__('Change the size of the image and the excerpt here.', self::language_file).'</p>';
+		self::tag_it(__('Change the size of the image and the excerpt here.', self::language_file), 'p');
 	
 	}
 	
 	function display_imgsize() {
 		
 		a5_number_field('image_size', 'rss_options[image_size]', self::$options['image_size'], __('Give here only the longest side of the image. The smaller side will be counted on displaying the image. There will be no cropping.', self::language_file), array('step' => 1));
+		
+	}
+	
+	function display_imgnmbr() {
+		
+		a5_text_field('image_number', 'rss_options[image_number]', self::$options['image_number'], sprintf(__('To use an image of the post instead of the post thumbnail, enter the number of that image. The word %s will bring the last image of the post.', self::language_file), '&#39;last&#39;'));
 		
 	}
 	
@@ -161,18 +178,11 @@ class RIF_Admin extends A5_OptionPage {
 		a5_number_field('excerpt_size', 'rss_options[excerpt_size]', self::$options['excerpt_size'], __('How long should the summary of the article be? Enter the number of sentences here.', self::language_file), array('step' => 1));
 		
 	}
-	
-	function reset_field($labels) {
-		
-		a5_checkbox('reset_options', 'rss_options[reset_options]', @self::$options['reset_options'], $labels[0]);
-		
-	}
 		
 	function validate_options($input) {
 		
-		$error = false;
-		
 		$newinput['image_size'] = trim($input['image_size']);
+		$newinput['image_number'] = trim($input['image_number']);
 		$newinput['force_excerpt'] = (isset($input['force_excerpt'])) ? true : false;
 		$newinput['excerpt_size'] = trim($input['excerpt_size']);
 		
@@ -182,19 +192,13 @@ class RIF_Admin extends A5_OptionPage {
 				
 				$newinput['image_size'] = 200;
 				
-				$error = true;
-				
 			endif;
-			
-			$newinput['image_size'] = intval($newinput['image_size']);
 			
 			if(!is_numeric($newinput['excerpt_size'])) :
 			
 				add_settings_error('rss_options', 'not-numeric-excerpt-size', __('Please enter a numeric value for the excerpt length.', self::language_file), 'error');
 				
 				$newinput['excerpt_size'] = 3;
-				
-				$error = true;
 				
 			endif;
 			
@@ -206,27 +210,22 @@ class RIF_Admin extends A5_OptionPage {
 				
 				$newinput['image_size'] = 200;
 				
-				$error = true;
-				
 			endif;
 			
+			$newinput['image_size'] = intval($newinput['image_size']);
+			
 			if ($newinput['image_size'] != self::$options['image_size']) add_image_size( 'rss-image', $newinput['image_size'], $newinput['image_size'] );
+			
+			if(!empty($newinput['image_number']) && !is_numeric($newinput['image_number'])) :
+			
+				$newinput['image_number'] = 'last';
+				
+			endif;
 			
 		self::$options['image_size'] = $newinput['image_size'];
 		self::$options['force_excerpt'] = $newinput['force_excerpt'];
 		self::$options['excerpt_size'] = $newinput['excerpt_size'];
-		
-		if (isset($input['reset_options'])) :
-		
-			self::$options['cache'] = array();
-			
-			add_settings_error('rss_options', 'empty-cache', __('Cache emptied.', self::language_file), 'updated');
-			
-			$error = 'custom';
-			
-		endif;
-		
-		if (false == $error) add_settings_error('rss_options', 'updated', __('Settings saved.'), 'updated');
+		self::$options['image_number'] = $newinput['image_number'];
 		
 		return self::$options;
 		
