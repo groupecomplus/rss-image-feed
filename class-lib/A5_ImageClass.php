@@ -5,7 +5,7 @@
  * Class A5 Images
  *
  * @ A5 Plugin Framework
- * Version: 1.0 beta 20141124
+ * Version: 1.0 beta 20150316
  *
  * Gets the alt and title tag for attachments
  *
@@ -29,9 +29,11 @@ class A5_Image {
 			
 			$args = array(
 				'post_type' => 'attachment',
-				'posts_per_page' => 1,
-				'post_status' => null,
-				'post_parent' => $id
+				'posts_per_page' => -1,
+				'post_status' => 'inherit',
+				'post_parent' => $id,
+				'orderby' => 'ID',
+				'order' => 'ASC'
 			);
 			
 			$attachments = get_posts( $args );
@@ -123,10 +125,12 @@ class A5_Image {
 			if (!isset($attachment_id)) :
 			
 				$args = array(
-				'post_type' => 'attachment',
-				'posts_per_page' => 1,
-				'post_status' => null,
-				'post_parent' => $id
+					'post_type' => 'attachment',
+					'posts_per_page' => -1,
+					'post_status' => 'inherit',
+					'post_parent' => $id,
+					'orderby' => 'ID',
+					'order' => 'ASC'
 				);
 				
 				$attachments = get_posts( $args );
