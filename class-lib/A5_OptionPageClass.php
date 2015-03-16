@@ -5,7 +5,7 @@
  * Class A5 Option Page
  *
  * @ A5 Plugin Framework
- * Version: 1.0 beta
+ * Version: 1.0 beta 20150316
  *
  * Gets all sort of containers for the flexible A5 settings pages
  *

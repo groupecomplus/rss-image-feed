@@ -5,7 +5,7 @@
  * Class A5 Excerpt
  *
  * @ A5 Plugin Framework
- * Version: 1.0 beta 20141124
+ * Version: 1.0 beta 20150316
  *
  * Gets the excerpt of a post according to some parameters
  *
