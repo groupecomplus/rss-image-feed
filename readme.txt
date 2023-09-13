@@ -1,10 +1,10 @@
 === RSS Image Feed ===
 Contributors: tepelstreel
 Donate link: https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=LLUFQDHG33XCE
-Tags: rss, feed, excerpt, content, custom, customize, image, images
+Tags: rss, feed, excerpt, content, custom, customize, image, images, enclosure, media content
 Requires at least: 2.7
-Tested up to: 4.2
-Stable tag: 4.1.1
+Tested up to: 4.5
+Stable tag: 4.2.5
 
 The RSS Image Feed adds the first image of a post to your feeds, even in firefox and even if you only display the excerpt.
 
@@ -12,7 +12,7 @@ The RSS Image Feed adds the first image of a post to your feeds, even in firefox
 
 The RSS Image Feed doesn't create a feed of images, but ataches the first image of the post to your feeds. Normally only the content has images showing. With our plugin there will be a clickable image even in the excerpt and in the content there will be only one image instead of all the images of the post. Since version 2.2 it works as a multisite plugin as well.
 
-The plugin was tested up to WP 3.9. It should work with versions down to 2.7 but was never tested on those.
+The plugin was tested up to WP 4.5 It should work with versions down to 2.7 but was never tested on those.
 
 == Installation ==
 
@@ -31,6 +31,32 @@ Try emptying the cache of your browser and reload the feed. The images should be
 2. The Feed with images in Opera
 
 == Changelog ==
+
+= 4.2.5 =
+
+* added some debug options to the frame work
+* some minor bugfixes
+
+= 4.2.4 =
+
+* made downwards compatible with versions prior to WP 4.4 again
+* some minor bugfixes
+
+= 4.2.3 =
+
+* added <media:content> tag to the feed as well
+
+= 4.2.2 =
+
+* Updated framework
+
+= 4.2.1 =
+
+* Bug in Regex fixed
+
+= 4.2 =
+
+* WP 4.3 ready
 
 = 4.1.1 =
 
@@ -178,3 +204,27 @@ WP 4.1 ready
 = 4.1.1 =
 
 Bug with order of the images fixed; WP 4.2 ready
+
+= 4.2 =
+
+WP 4.3 ready
+
+= 4.2.1 =
+
+Bug in Regex fixed
+
+= 4.2.2 =
+
+Updated framework
+
+= 4.2.3 =
+
+Added <media:content> tag to the feed as well
+
+= 4.2.4 =
+
+Made downwards compatible with versions prior to WP 4.4 again; some minor bugfixes
+
+= 4.2.5 =
+
+some minor bugfixes; debug options added to framework
