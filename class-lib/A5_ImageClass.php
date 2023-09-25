@@ -269,9 +269,10 @@ class A5_Image {
 
 				$tmp_image = download_url($img);
 
-				if (!is_wp_error($tmp_image)) $imgsize = @getimagesize($tmp_img);
-
-				@unlink($tmp_image);
+				if (!is_wp_error($tmp_image)) {
+                    $imgsize = @getimagesize($tmp_image);
+                    @unlink($tmp_image);
+                }
 
 			endif;
 
