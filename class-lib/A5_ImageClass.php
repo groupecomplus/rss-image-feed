@@ -221,7 +221,7 @@ class A5_Image {
 
 		else :
 
-			$thumb_width = $size['width'];
+			$thumb_width = is_array($size) && array_key_exists('width', $size) ? $size['width'] : false;
 			$thumb_height = false;
 
 		endif;
